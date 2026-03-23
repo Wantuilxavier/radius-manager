@@ -251,6 +251,7 @@ const ACTION_LABELS = {
   edit:   'Editar',
   delete: 'Excluir',
   toggle: 'Ativar/Bloquear',
+  export: 'Exportar PDF',
 };
 const ACTION_ICONS = {
   view:   '#ic-eye',
@@ -258,6 +259,7 @@ const ACTION_ICONS = {
   edit:   '#ic-edit',
   delete: '#ic-trash',
   toggle: '#ic-power',
+  export: '#ic-download',
 };
 
 let _permAdminId   = null;

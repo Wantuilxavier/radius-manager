@@ -292,4 +292,5 @@ INSERT IGNORE INTO schema_migrations (version) VALUES
 ('002_add_permissions'),
 ('003_simultaneous_connections'),
 ('004_add_departments'),
-('005_add_system_settings');
+('005_add_system_settings'),
+('006_add_export_permission');

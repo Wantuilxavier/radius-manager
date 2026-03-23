@@ -1,7 +1,7 @@
 const router  = require('express').Router();
 const bcrypt  = require('bcryptjs');
 const { pool } = require('../db/connection');
-const { authMiddleware, requireSuperAdmin } = require('../middleware/auth');
+const { authMiddleware, requireSuperAdmin, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
@@ -9,7 +9,7 @@ router.use(authMiddleware);
 const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit', 'departments'];
 const ACTIONS   = {
   dashboard:   ['view'],
-  users:       ['view', 'create', 'edit', 'delete', 'toggle'],
+  users:       ['view', 'create', 'edit', 'delete', 'toggle', 'export'],
   groups:      ['view', 'create', 'edit', 'delete'],
   nas:         ['view', 'create', 'edit', 'delete'],
   sessions:    ['view'],
@@ -26,6 +26,7 @@ const DEFAULT_PERMISSIONS = {
     { resource: 'users',       action: 'edit'   },
     { resource: 'users',       action: 'delete' },
     { resource: 'users',       action: 'toggle' },
+    { resource: 'users',       action: 'export' },
     { resource: 'groups',      action: 'view'   },
     { resource: 'groups',      action: 'create' },
     { resource: 'groups',      action: 'edit'   },
@@ -305,9 +306,7 @@ router.put('/default-vlan', requireSuperAdmin, async (req, res) => {
 // ─── GET /api/users/export ────────────────────────────────────
 // Retorna todos os usuários (sem paginação) respeitando os filtros,
 // para uso exclusivo na geração do PDF no frontend.
-router.get('/users-export', async (req, res) => {
-  const u = req.admin;
-  if (!u) return res.status(401).json({ error: 'Não autorizado' });
+router.get('/users-export', requirePermission('users', 'export'), async (req, res) => {
 
   try {
     const { search, group, active, include_password } = req.query;

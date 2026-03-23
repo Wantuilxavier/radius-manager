@@ -243,9 +243,9 @@ function _applyPagePermissions(page) {
   const btnNewDept = document.getElementById('btn-new-department');
   if (btnNewDept) btnNewDept.style.display = hasPermission('departments', 'create') ? '' : 'none';
 
-  // Botão "Exportar PDF" (visível para quem pode visualizar usuários)
+  // Botão "Exportar PDF"
   const btnExportPdf = document.getElementById('btn-export-pdf');
-  if (btnExportPdf) btnExportPdf.style.display = hasPermission('users', 'view') ? '' : 'none';
+  if (btnExportPdf) btnExportPdf.style.display = hasPermission('users', 'export') ? '' : 'none';
 
   // Botão "Novo Admin" (somente superadmin vê settings)
   const btnNewAdmin = document.querySelector('#page-settings .btn-primary[onclick="openNewAdminModal()"]');
