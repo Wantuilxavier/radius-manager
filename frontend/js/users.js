@@ -51,15 +51,18 @@ function renderUsersTable({ users, total, page, limit }) {
             <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalhes" onclick="viewUser('${u.username}')">
               <svg><use href="#ic-eye"/></svg>
             </button>
+            ${hasPermission('users','edit') ? `
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="editUser('${u.username}')">
               <svg><use href="#ic-edit"/></svg>
-            </button>
+            </button>` : ''}
+            ${hasPermission('users','toggle') ? `
             <button class="btn btn-sm btn-icon ${u.active ? 'btn-danger' : 'btn-success'}" title="${u.active ? 'Bloquear' : 'Ativar'}" onclick="toggleUser('${u.username}', ${u.active})">
               <svg><use href="#ic-power"/></svg>
-            </button>
+            </button>` : ''}
+            ${hasPermission('users','delete') ? `
             <button class="btn btn-danger btn-sm btn-icon" title="Remover" onclick="deleteUser('${u.username}')">
               <svg><use href="#ic-trash"/></svg>
-            </button>
+            </button>` : ''}
           </div>
         </td>
       </tr>`;

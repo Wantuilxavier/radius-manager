@@ -4,6 +4,22 @@ const jwt    = require('jsonwebtoken');
 const { pool } = require('../db/connection');
 const { authMiddleware } = require('../middleware/auth');
 
+// ─── Helper: busca permissões do admin no banco ───────────────
+async function fetchPermissions(adminId, role) {
+  if (role === 'superadmin') return null; // superadmin não precisa de mapa — bypass total
+
+  const [rows] = await pool.query(
+    'SELECT resource, action FROM admin_permissions WHERE admin_id = ?',
+    [adminId]
+  );
+  const perms = {};
+  rows.forEach(({ resource, action }) => {
+    if (!perms[resource]) perms[resource] = [];
+    perms[resource].push(action);
+  });
+  return perms;
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -30,15 +46,39 @@ router.post('/login', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );
 
-    res.json({ token, user: { username: admin.username, full_name: admin.full_name, role: admin.role } });
+    const permissions = await fetchPermissions(admin.id, admin.role);
+
+    res.json({
+      token,
+      user: {
+        id:        admin.id,
+        username:  admin.username,
+        full_name: admin.full_name,
+        role:      admin.role,
+      },
+      permissions, // null para superadmin; objeto { resource: [actions] } para os demais
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro interno' });
   }
 });
 
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req, res) => {
-  res.json({ user: req.admin });
+  try {
+    const [[admin]] = await pool.query(
+      'SELECT id, username, full_name, role, active FROM admin_users WHERE id = ?',
+      [req.admin.id]
+    );
+    if (!admin || !admin.active)
+      return res.status(401).json({ error: 'Conta inativa' });
+
+    const permissions = await fetchPermissions(admin.id, admin.role);
+    res.json({ user: admin, permissions });
+  } catch {
+    res.status(500).json({ error: 'Erro interno' });
+  }
 });
 
 // POST /api/auth/change-password

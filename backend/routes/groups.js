@@ -1,11 +1,11 @@
 const router = require('express').Router();
 const { pool } = require('../db/connection');
-const { authMiddleware, requireSuperAdmin } = require('../middleware/auth');
+const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
 // GET /api/groups
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('groups', 'view'), async (req, res) => {
   try {
     const [groups] = await pool.query(
       `SELECT vp.*, COUNT(rug.username) as user_count
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/groups
-router.post('/', requireSuperAdmin, async (req, res) => {
+router.post('/', requirePermission('groups', 'create'), async (req, res) => {
   const { groupname, vlan_id, description, color } = req.body;
   if (!groupname || !vlan_id)
     return res.status(400).json({ error: 'groupname e vlan_id são obrigatórios' });
@@ -33,7 +33,6 @@ router.post('/', requireSuperAdmin, async (req, res) => {
       'INSERT INTO vlan_profiles (groupname, vlan_id, description, color) VALUES (?,?,?,?)',
       [groupname, vlan_id, description || null, color || '#6366f1']
     );
-    // Insere atributos VLAN no radgroupreply
     const attrs = [
       [groupname, 'Tunnel-Type',               ':=', '13'],
       [groupname, 'Tunnel-Medium-Type',         ':=', '6'],
@@ -54,7 +53,7 @@ router.post('/', requireSuperAdmin, async (req, res) => {
 });
 
 // PUT /api/groups/:groupname
-router.put('/:groupname', requireSuperAdmin, async (req, res) => {
+router.put('/:groupname', requirePermission('groups', 'edit'), async (req, res) => {
   const { groupname } = req.params;
   const { vlan_id, description, color, active } = req.body;
 
@@ -79,7 +78,7 @@ router.put('/:groupname', requireSuperAdmin, async (req, res) => {
 });
 
 // DELETE /api/groups/:groupname
-router.delete('/:groupname', requireSuperAdmin, async (req, res) => {
+router.delete('/:groupname', requirePermission('groups', 'delete'), async (req, res) => {
   const { groupname } = req.params;
   const [[{ cnt }]] = await pool.query('SELECT COUNT(*) as cnt FROM radusergroup WHERE groupname = ?', [groupname]);
   if (cnt > 0) return res.status(409).json({ error: `Existem ${cnt} usuários neste grupo. Mova-os antes de remover.` });

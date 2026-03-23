@@ -25,7 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const token = localStorage.getItem('rm_token');
   if (token) {
     try {
-      await api.get('/auth/me');
+      const me = await api.get('/auth/me');
+      // Atualiza user e permissões com dados frescos do servidor
+      if (me.user) localStorage.setItem('rm_user', JSON.stringify(me.user));
+      savePermissions(me.permissions);
       showApp();
       await loadGroups();
       navigate('dashboard');
@@ -125,6 +128,7 @@ async function handleLogin(e) {
     const data = await api.post('/auth/login', { username, password });
     localStorage.setItem('rm_token', data.token);
     localStorage.setItem('rm_user', JSON.stringify(data.user));
+    savePermissions(data.permissions);
     showApp();
     await loadGroups();
     navigate('dashboard');
@@ -140,6 +144,7 @@ async function handleLogin(e) {
 function logout() {
   localStorage.removeItem('rm_token');
   localStorage.removeItem('rm_user');
+  localStorage.removeItem('rm_permissions');
   showLogin();
   document.getElementById('login-password').value = '';
 }
@@ -162,6 +167,9 @@ async function navigate(page) {
   const topbarPage = document.getElementById('topbar-page');
   if (topbarPage) topbarPage.textContent = PAGE_META[page] || page;
 
+  // Mostra/esconde botões de ação das páginas conforme permissão
+  _applyPagePermissions(page);
+
   if (page === 'dashboard')  loadDashboard();
   if (page === 'users')      loadUsers();
   if (page === 'groups')     loadGroupsPage();
@@ -174,6 +182,28 @@ async function navigate(page) {
 // ─── Load groups (for dropdowns) ─────────────────────────────
 async function loadGroups() {
   try { groups = await api.get('/groups'); } catch { groups = []; }
+}
+
+// ─── Aplica visibilidade de botões conforme permissões ─────────
+function _applyPagePermissions(page) {
+  // Botão "Novo Usuário"
+  const btnNewUser = document.querySelector('#page-users .btn-primary[onclick="createUser()"]');
+  if (btnNewUser) btnNewUser.style.display = hasPermission('users', 'create') ? '' : 'none';
+
+  // Botão "Nova VLAN"
+  const btnNewGroup = document.querySelector('#page-groups .btn-primary[onclick="openNewGroupModal()"]');
+  if (btnNewGroup) btnNewGroup.style.display = hasPermission('groups', 'create') ? '' : 'none';
+
+  // Botão "Novo NAS"
+  const btnNewNas = document.getElementById('btn-new-nas');
+  if (btnNewNas) btnNewNas.style.display = hasPermission('nas', 'create') ? '' : 'none';
+
+  // Botão "Novo Admin" (somente superadmin vê settings)
+  const btnNewAdmin = document.querySelector('#page-settings .btn-primary[onclick="openNewAdminModal()"]');
+  if (btnNewAdmin) {
+    const u = currentUser();
+    btnNewAdmin.style.display = (u?.role === 'superadmin') ? '' : 'none';
+  }
 }
 
 function groupOptions(selected) {

@@ -1,11 +1,11 @@
 const router = require('express').Router();
 const { pool } = require('../db/connection');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
 // GET /api/dashboard/stats
-router.get('/stats', async (req, res) => {
+router.get('/stats', requirePermission('dashboard', 'view'), async (req, res) => {
   try {
     const [[users]]   = await pool.query('SELECT COUNT(*) as total, SUM(active=1) as active, SUM(active=0) as inactive FROM user_profiles');
     const [[groups]]  = await pool.query('SELECT COUNT(*) as total FROM vlan_profiles WHERE active = 1');
@@ -54,7 +54,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/dashboard/audit
-router.get('/audit', async (req, res) => {
+router.get('/audit', requirePermission('audit', 'view'), async (req, res) => {
   try {
     const { page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -70,7 +70,7 @@ router.get('/audit', async (req, res) => {
 });
 
 // GET /api/dashboard/sessions - sessões ativas
-router.get('/sessions', async (req, res) => {
+router.get('/sessions', requirePermission('sessions', 'view'), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT ra.username, ra.framedipaddress, ra.nasipaddress, ra.acctstarttime,

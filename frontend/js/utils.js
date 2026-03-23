@@ -60,6 +60,30 @@ document.addEventListener('click', e => {
 function currentUser() {
   try { return JSON.parse(localStorage.getItem('rm_user')); } catch { return null; }
 }
+
+// ─── Permissões granulares ────────────────────────────────────
+// Retorna true se o usuário logado tem a permissão resource:action.
+// superadmin sempre retorna true (sem verificar localStorage).
+function hasPermission(resource, action) {
+  const u = currentUser();
+  if (!u) return false;
+  if (u.role === 'superadmin') return true;
+  try {
+    const perms = JSON.parse(localStorage.getItem('rm_permissions') || '{}');
+    return Array.isArray(perms[resource]) && perms[resource].includes(action);
+  } catch { return false; }
+}
+
+// Salva permissões vindas do servidor no localStorage
+function savePermissions(permissions) {
+  if (permissions === null) {
+    // superadmin — remove entrada (será inferido pelo role)
+    localStorage.removeItem('rm_permissions');
+  } else {
+    localStorage.setItem('rm_permissions', JSON.stringify(permissions || {}));
+  }
+}
+
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');

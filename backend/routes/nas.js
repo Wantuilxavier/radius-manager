@@ -1,11 +1,11 @@
 const router = require('express').Router();
 const { pool } = require('../db/connection');
-const { authMiddleware, requireSuperAdmin } = require('../middleware/auth');
+const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
 // GET /api/nas
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('nas', 'view'), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT n.*,
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/nas/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission('nas', 'view'), async (req, res) => {
   try {
     const [[nas]] = await pool.query('SELECT * FROM nas WHERE id = ?', [req.params.id]);
     if (!nas) return res.status(404).json({ error: 'NAS não encontrado' });
@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/nas
-router.post('/', requireSuperAdmin, async (req, res) => {
+router.post('/', requirePermission('nas', 'create'), async (req, res) => {
   const { nasname, shortname, type, secret, ports, community, description } = req.body;
   if (!nasname || !secret)
     return res.status(400).json({ error: 'IP/hostname e secret são obrigatórios' });
@@ -56,7 +56,7 @@ router.post('/', requireSuperAdmin, async (req, res) => {
 });
 
 // PUT /api/nas/:id
-router.put('/:id', requireSuperAdmin, async (req, res) => {
+router.put('/:id', requirePermission('nas', 'edit'), async (req, res) => {
   const { nasname, shortname, type, secret, ports, community, description } = req.body;
   try {
     const [r] = await pool.query(
@@ -72,7 +72,7 @@ router.put('/:id', requireSuperAdmin, async (req, res) => {
 });
 
 // DELETE /api/nas/:id
-router.delete('/:id', requireSuperAdmin, async (req, res) => {
+router.delete('/:id', requirePermission('nas', 'delete'), async (req, res) => {
   try {
     const [r] = await pool.query('DELETE FROM nas WHERE id = ?', [req.params.id]);
     if (!r.affectedRows) return res.status(404).json({ error: 'NAS não encontrado' });

@@ -50,12 +50,16 @@ function renderGroupCard(g) {
         </span>
       </div>
       <div class="group-card-actions">
+        ${hasPermission('groups','edit') ? `
         <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick='editGroup(${JSON.stringify(g)})'>
           <svg><use href="#ic-edit"/></svg> Editar
-        </button>
-        <button class="btn btn-danger btn-sm" style="justify-content:center" onclick="deleteGroup('${g.groupname}', ${g.user_count})">
+        </button>` : ''}
+        ${hasPermission('groups','delete') ? `
+        <button class="btn btn-danger btn-sm" style="justify-content:center" title="Remover" onclick="deleteGroup('${g.groupname}', ${g.user_count})">
           <svg><use href="#ic-trash"/></svg>
-        </button>
+        </button>` : ''}
+        ${!hasPermission('groups','edit') && !hasPermission('groups','delete') ? `
+        <span style="font-size:12px;color:var(--text-muted);padding:4px 0">Somente visualização</span>` : ''}
       </div>
     </div>`;
 }

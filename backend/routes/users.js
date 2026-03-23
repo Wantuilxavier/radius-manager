@@ -1,12 +1,11 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../db/connection');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
 // ─── Helpers ─────────────────────────────────────────────────
-
 async function auditLog(pool, admin, action, targetType, targetName, details, ip) {
   await pool.query(
     'INSERT INTO audit_log (admin_user, action, target_type, target_name, details, ip_address) VALUES (?,?,?,?,?,?)',
@@ -25,8 +24,8 @@ async function getUserFull(username) {
   return profile;
 }
 
-// ─── GET /api/users ──────────────────────────────────────────
-router.get('/', async (req, res) => {
+// ─── GET /api/users ───────────────────────────────────────────
+router.get('/', requirePermission('users', 'view'), async (req, res) => {
   try {
     const { search, group, active, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -66,12 +65,11 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/users/:username ─────────────────────────────────
-router.get('/:username', async (req, res) => {
+router.get('/:username', requirePermission('users', 'view'), async (req, res) => {
   try {
     const user = await getUserFull(req.params.username);
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
-    // Busca últimas sessões
     const [sessions] = await pool.query(
       `SELECT acctstarttime, acctstoptime, acctsessiontime, framedipaddress,
               nasipaddress, callingstationid, acctterminatecause
@@ -86,7 +84,7 @@ router.get('/:username', async (req, res) => {
 });
 
 // ─── POST /api/users ──────────────────────────────────────────
-router.post('/', async (req, res) => {
+router.post('/', requirePermission('users', 'create'), async (req, res) => {
   const { username, password, groupname, full_name, email, phone, department, notes, expires_at } = req.body;
 
   if (!username || !password || !groupname)
@@ -99,33 +97,26 @@ router.post('/', async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Verifica se usuário já existe
     const [[existing]] = await conn.query('SELECT username FROM user_profiles WHERE username = ?', [username]);
     if (existing) {
       await conn.rollback();
       return res.status(409).json({ error: 'Usuário já existe' });
     }
 
-    // Verifica se grupo existe
     const [[group]] = await conn.query('SELECT groupname FROM vlan_profiles WHERE groupname = ? AND active = 1', [groupname]);
     if (!group) {
       await conn.rollback();
       return res.status(400).json({ error: 'Grupo/VLAN não encontrado ou inativo' });
     }
 
-    // radcheck - senha em texto claro (FreeRADIUS autentica diretamente)
     await conn.query(
       "INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Cleartext-Password', ':=', ?)",
       [username, password]
     );
-
-    // radusergroup
     await conn.query(
       'INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)',
       [username, groupname]
     );
-
-    // user_profiles (metadados)
     await conn.query(
       `INSERT INTO user_profiles (username, full_name, email, phone, department, notes, active, expires_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
@@ -146,7 +137,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── PUT /api/users/:username ─────────────────────────────────
-router.put('/:username', async (req, res) => {
+router.put('/:username', requirePermission('users', 'edit'), async (req, res) => {
   const { username } = req.params;
   const { password, groupname, full_name, email, phone, department, notes, expires_at } = req.body;
 
@@ -160,13 +151,11 @@ router.put('/:username', async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Atualiza senha se fornecida
     if (password) {
       if (password.length < 6) { await conn.rollback(); return res.status(400).json({ error: 'Senha mínima: 6 caracteres' }); }
       await conn.query("UPDATE radcheck SET value = ? WHERE username = ? AND attribute = 'Cleartext-Password'", [password, username]);
     }
 
-    // Atualiza grupo se fornecido
     if (groupname) {
       const [[group]] = await conn.query('SELECT groupname FROM vlan_profiles WHERE groupname = ? AND active = 1', [groupname]);
       if (!group) { await conn.rollback(); return res.status(400).json({ error: 'Grupo não encontrado' }); }
@@ -174,7 +163,6 @@ router.put('/:username', async (req, res) => {
       await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)', [username, groupname]);
     }
 
-    // Atualiza perfil
     await conn.query(
       `UPDATE user_profiles SET full_name=?, email=?, phone=?, department=?, notes=?, expires_at=? WHERE username=?`,
       [full_name || null, email || null, phone || null, department || null, notes || null, expires_at || null, username]
@@ -192,7 +180,7 @@ router.put('/:username', async (req, res) => {
 });
 
 // ─── PATCH /api/users/:username/toggle ───────────────────────
-router.patch('/:username/toggle', async (req, res) => {
+router.patch('/:username/toggle', requirePermission('users', 'toggle'), async (req, res) => {
   const { username } = req.params;
   const conn = await pool.getConnection();
   try {
@@ -205,11 +193,9 @@ router.patch('/:username/toggle', async (req, res) => {
     await conn.query('UPDATE user_profiles SET active = ? WHERE username = ?', [newActive, username]);
 
     if (newActive === 0) {
-      // Bloqueia no radius: adiciona atributo Auth-Type := Reject
       await conn.query("DELETE FROM radcheck WHERE username = ? AND attribute = 'Auth-Type'", [username]);
       await conn.query("INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Auth-Type', ':=', 'Reject')", [username]);
     } else {
-      // Remove bloqueio
       await conn.query("DELETE FROM radcheck WHERE username = ? AND attribute = 'Auth-Type'", [username]);
     }
 
@@ -226,7 +212,7 @@ router.patch('/:username/toggle', async (req, res) => {
 });
 
 // ─── DELETE /api/users/:username ─────────────────────────────
-router.delete('/:username', async (req, res) => {
+router.delete('/:username', requirePermission('users', 'delete'), async (req, res) => {
   const { username } = req.params;
   const conn = await pool.getConnection();
   try {

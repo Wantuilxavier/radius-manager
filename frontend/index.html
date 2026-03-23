@@ -906,6 +906,26 @@
   </div>
 </div>
 
+<!-- Modal: Permissions -->
+<div id="modal-permissions" class="modal-overlay">
+  <div class="modal" style="max-width:680px;width:95%">
+    <div class="modal-header">
+      <span class="modal-title">Permissões</span>
+      <span id="perm-role-badge" class="badge badge-blue" style="margin-left:10px"></span>
+      <button class="modal-close" style="margin-left:auto"><svg><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:0 24px 8px;max-height:70vh;overflow-y:auto">
+      <div id="perm-matrix-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-permissions')">Cancelar</button>
+      <button id="btn-save-permissions" class="btn btn-primary" onclick="savePermissions_modal()">
+        <svg><use href="#ic-shield"/></svg> Salvar Permissões
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 

@@ -45,7 +45,6 @@ async function loadAdminsList() {
   const el  = document.getElementById('admins-list');
   const u   = currentUser();
 
-  // Somente superadmin vê a lista
   if (!u || u.role !== 'superadmin') {
     document.getElementById('admins-card').style.display = 'none';
     return;
@@ -59,33 +58,40 @@ async function loadAdminsList() {
     const roleLabel = { superadmin: 'Superadmin', admin: 'Admin', viewer: 'Viewer' };
 
     el.innerHTML = admins.map(a => `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0">
+      <div class="admin-item">
+        <div class="admin-avatar">
           ${(a.full_name || a.username).charAt(0).toUpperCase()}
         </div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-weight:600;font-size:13.5px">${a.username}</span>
+        <div class="admin-info">
+          <div class="name" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>${a.username}</span>
             <span class="badge ${roleColor[a.role] || 'badge-gray'}">${roleLabel[a.role] || a.role}</span>
             ${!a.active ? '<span class="badge badge-red">Inativo</span>' : ''}
             ${String(a.id) === String(currentUser()?.id) ? '<span style="font-size:11px;color:var(--accent)">(você)</span>' : ''}
           </div>
-          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
+          <div class="meta">
             ${a.full_name || ''}${a.email ? ` · ${a.email}` : ''}
             ${a.last_login ? ` · Último acesso: ${fmtDate(a.last_login)}` : ' · Nunca acessou'}
           </div>
         </div>
         ${String(a.id) !== String(currentUser()?.id) ? `
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-ghost btn-sm" onclick='openEditAdminModal(${JSON.stringify(a)})'>Editar</button>
-          <button class="btn btn-sm ${a.active ? 'btn-danger' : 'btn-success'}"
-            onclick="toggleAdmin(${a.id}, ${a.active})">
-            ${a.active ? 'Desativar' : 'Ativar'}
+        <div class="admin-actions">
+          ${a.role !== 'superadmin' ? `
+          <button class="btn btn-ghost btn-sm btn-icon" title="Gerenciar permissões" onclick="openPermissionsModal(${a.id}, '${a.username}', '${a.role}')">
+            <svg><use href="#ic-shield"/></svg>
+          </button>` : ''}
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick='openEditAdminModal(${JSON.stringify(a)})'>
+            <svg><use href="#ic-edit"/></svg>
           </button>
-          <button class="btn btn-danger btn-sm" onclick="deleteAdmin(${a.id}, '${a.username}')">✕</button>
+          <button class="btn btn-sm btn-icon ${a.active ? 'btn-danger' : 'btn-success'}" title="${a.active ? 'Desativar' : 'Ativar'}"
+            onclick="toggleAdmin(${a.id}, ${a.active})">
+            <svg><use href="#ic-power"/></svg>
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Remover" onclick="deleteAdmin(${a.id}, '${a.username}')">
+            <svg><use href="#ic-trash"/></svg>
+          </button>
         </div>` : ''}
-      </div>`).join('') +
-      `<div style="padding-top:4px"></div>`;
+      </div>`).join('');
 
   } catch (err) {
     el.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`;
@@ -136,9 +142,8 @@ async function submitNewAdmin() {
   }
 }
 
-// ─── Edit Admin (inline modal reutilizando new-admin) ─────────
+// ─── Edit Admin ───────────────────────────────────────────────
 function openEditAdminModal(a) {
-  // Reutiliza o modal de novo admin como "editar"
   document.getElementById('modal-new-admin').querySelector('.modal-title').textContent = `Editar: ${a.username}`;
   document.getElementById('new-admin-username').value = a.username;
   document.getElementById('new-admin-username').disabled = true;
@@ -149,7 +154,6 @@ function openEditAdminModal(a) {
   document.getElementById('new-admin-role').value     = a.role;
   document.getElementById('new-admin-error').style.display = 'none';
 
-  // Troca o handler do botão
   const btn = document.getElementById('btn-create-admin');
   btn.textContent = 'Salvar';
   btn.onclick = () => submitEditAdminFromModal(a.id);
@@ -161,8 +165,8 @@ async function submitEditAdminFromModal(id) {
   const errEl = document.getElementById('new-admin-error');
   errEl.style.display = 'none';
 
-  const pw       = document.getElementById('new-admin-password').value;
-  const body     = {
+  const pw   = document.getElementById('new-admin-password').value;
+  const body = {
     full_name: document.getElementById('new-admin-fullname').value.trim() || null,
     email:     document.getElementById('new-admin-email').value.trim() || null,
     role:      document.getElementById('new-admin-role').value,
@@ -176,7 +180,6 @@ async function submitEditAdminFromModal(id) {
     await api.put(`/settings/admins/${id}`, body);
     toast('Admin atualizado com sucesso', 'success');
     closeModal('modal-new-admin');
-    // Restaura modal para o estado de "criar"
     _resetAdminModal();
     loadAdminsList();
   } catch (err) {
@@ -196,30 +199,25 @@ function _resetAdminModal() {
   btn.onclick = submitNewAdmin;
 }
 
-// ─── Toggle Admin ─────────────────────────────────────────────
+// ─── Toggle/Delete Admin ──────────────────────────────────────
 async function toggleAdmin(id, currentActive) {
   try {
     await api.put(`/settings/admins/${id}`, { active: currentActive ? 0 : 1 });
     toast(`Admin ${currentActive ? 'desativado' : 'ativado'}`, currentActive ? 'info' : 'success');
     loadAdminsList();
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
-// ─── Delete Admin ─────────────────────────────────────────────
 async function deleteAdmin(id, username) {
   if (!confirm(`Remover o administrador "${username}" permanentemente?`)) return;
   try {
     await api.delete(`/settings/admins/${id}`);
     toast(`Admin ${username} removido`, 'info');
     loadAdminsList();
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
-// Restaura o modal quando fechado via X ou overlay
+// Restaura modal quando fechado
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('modal-new-admin');
   if (overlay) {
@@ -229,3 +227,128 @@ document.addEventListener('DOMContentLoaded', () => {
     observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL DE PERMISSÕES
+// ═══════════════════════════════════════════════════════════════
+
+// Labels amigáveis
+const RESOURCE_LABELS = {
+  dashboard: 'Dashboard',
+  users:     'Usuários',
+  groups:    'Grupos / VLANs',
+  nas:       'Dispositivos NAS',
+  sessions:  'Sessões Ativas',
+  audit:     'Log de Auditoria',
+};
+const ACTION_LABELS = {
+  view:   'Visualizar',
+  create: 'Criar',
+  edit:   'Editar',
+  delete: 'Excluir',
+  toggle: 'Ativar/Bloquear',
+};
+const ACTION_ICONS = {
+  view:   '#ic-eye',
+  create: '#ic-plus',
+  edit:   '#ic-edit',
+  delete: '#ic-trash',
+  toggle: '#ic-power',
+};
+
+let _permAdminId   = null;
+let _permAvailable = {};
+
+async function openPermissionsModal(adminId, username, role) {
+  _permAdminId = adminId;
+
+  const modal = document.getElementById('modal-permissions');
+  modal.querySelector('.modal-title').textContent = `Permissões — ${username}`;
+  modal.querySelector('#perm-role-badge').textContent = role;
+  modal.querySelector('#perm-role-badge').className =
+    `badge ${role === 'admin' ? 'badge-blue' : 'badge-gray'}`;
+
+  const body = modal.querySelector('#perm-matrix-body');
+  body.innerHTML = '<div class="loading-overlay"><span class="spinner"></span></div>';
+  openModal('modal-permissions');
+
+  try {
+    const data = await api.get(`/settings/admins/${adminId}/permissions`);
+    _permAvailable = data.available;
+    _renderPermMatrix(body, data.granted, data.available);
+  } catch (err) {
+    body.innerHTML = `<p style="color:var(--red);padding:16px">${err.message}</p>`;
+  }
+}
+
+function _renderPermMatrix(container, granted, available) {
+  const resources = Object.keys(available);
+
+  container.innerHTML = `
+    <div style="padding:4px 0 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="font-size:13px;color:var(--text-secondary)">Marque as permissões que este usuário deve ter.</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="_permSelectAll(true)">Marcar todos</button>
+        <button class="btn btn-ghost btn-sm" onclick="_permSelectAll(false)">Desmarcar todos</button>
+      </div>
+    </div>
+    <div class="perm-matrix">
+      ${resources.map(resource => {
+        const actions = available[resource];
+        return `
+          <div class="perm-resource-row">
+            <div class="perm-resource-name">
+              <svg style="width:14px;height:14px;color:var(--accent)"><use href="#ic-shield"/></svg>
+              ${RESOURCE_LABELS[resource] || resource}
+            </div>
+            <div class="perm-actions-wrap">
+              ${actions.map(action => {
+                const checked = (granted[resource] || []).includes(action);
+                return `
+                  <label class="perm-checkbox-label ${checked ? 'perm-checked' : ''}" id="perm-lbl-${resource}-${action}">
+                    <input type="checkbox" class="perm-cb" data-resource="${resource}" data-action="${action}"
+                      ${checked ? 'checked' : ''}
+                      onchange="_permToggleLabel(this)">
+                    <svg style="width:13px;height:13px"><use href="${ACTION_ICONS[action] || '#ic-check'}"/></svg>
+                    ${ACTION_LABELS[action] || action}
+                  </label>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function _permToggleLabel(checkbox) {
+  const label = checkbox.closest('.perm-checkbox-label');
+  label.classList.toggle('perm-checked', checkbox.checked);
+}
+
+function _permSelectAll(checked) {
+  document.querySelectorAll('#modal-permissions .perm-cb').forEach(cb => {
+    cb.checked = checked;
+    _permToggleLabel(cb);
+  });
+}
+
+async function savePermissions_modal() {
+  const checkboxes = document.querySelectorAll('#modal-permissions .perm-cb');
+  const permissions = [];
+  checkboxes.forEach(cb => {
+    if (cb.checked) permissions.push({ resource: cb.dataset.resource, action: cb.dataset.action });
+  });
+
+  const btn = document.getElementById('btn-save-permissions');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  try {
+    const result = await api.put(`/settings/admins/${_permAdminId}/permissions`, { permissions });
+    toast(result.message || 'Permissões salvas', 'success');
+    closeModal('modal-permissions');
+    loadAdminsList();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar Permissões';
+  }
+}

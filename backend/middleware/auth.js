@@ -1,5 +1,7 @@
-const jwt = require('jsonwebtoken');
+const jwt  = require('jsonwebtoken');
+const { pool } = require('../db/connection');
 
+// ─── Valida o JWT e popula req.admin ──────────────────────────
 function authMiddleware(req, res, next) {
   const header = req.headers['authorization'];
   if (!header || !header.startsWith('Bearer ')) {
@@ -15,11 +17,39 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// ─── Exige role superadmin ────────────────────────────────────
 function requireSuperAdmin(req, res, next) {
   if (req.admin.role !== 'superadmin') {
-    return res.status(403).json({ error: 'Permissão insuficiente' });
+    return res.status(403).json({ error: 'Permissão insuficiente — requer superadmin' });
   }
   next();
 }
 
-module.exports = { authMiddleware, requireSuperAdmin };
+// ─── Exige permissão granular (resource + action) ─────────────
+// Superadmin sempre passa; outros consultam admin_permissions.
+// Uso: router.post('/', requirePermission('users','create'), handler)
+function requirePermission(resource, action) {
+  return async (req, res, next) => {
+    // superadmin bypassa todas as verificações
+    if (req.admin?.role === 'superadmin') return next();
+
+    try {
+      const [[perm]] = await pool.query(
+        `SELECT id FROM admin_permissions
+         WHERE admin_id = ? AND resource = ? AND action = ?`,
+        [req.admin.id, resource, action]
+      );
+      if (!perm) {
+        return res.status(403).json({
+          error: `Permissão negada — você não tem acesso a [${resource}:${action}]`,
+        });
+      }
+      next();
+    } catch (err) {
+      console.error('Erro ao verificar permissões:', err);
+      res.status(500).json({ error: 'Erro ao verificar permissões' });
+    }
+  };
+}
+
+module.exports = { authMiddleware, requireSuperAdmin, requirePermission };
