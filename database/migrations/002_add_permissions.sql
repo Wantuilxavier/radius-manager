@@ -1,25 +1,35 @@
 -- ============================================================
 -- Migration 002 — Sistema de Permissões Granulares
--- Executar uma única vez no banco de dados radius
+-- Idempotente: verifica schema_migrations antes de executar.
+-- Para aplicar manualmente:
+--   mariadb -u root radius < database/migrations/002_add_permissions.sql
 -- ============================================================
 USE radius;
 
--- Tabela de permissões individuais por administrador
-CREATE TABLE IF NOT EXISTS admin_permissions (
-  id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  admin_id   INT UNSIGNED NOT NULL,
-  resource   VARCHAR(32)  NOT NULL,   -- dashboard, users, groups, nas, sessions, audit
-  action     VARCHAR(16)  NOT NULL,   -- view, create, edit, delete, toggle
-  PRIMARY KEY (id),
-  UNIQUE KEY uniq_perm (admin_id, resource, action),
-  CONSTRAINT fk_perm_admin
-    FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+-- Garante que a tabela de controle exista (caso esta migration seja
+-- aplicada em um banco anterior à introdução do schema_migrations)
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version     VARCHAR(64) NOT NULL,
+    applied_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (version)
 );
 
--- ─── Permissões padrão para admins do tipo 'admin' ───────────
--- (viewers ficam sem permissões — apenas view será concedido abaixo)
+-- Só executa se ainda não foi aplicada
+SET @already_applied = (SELECT COUNT(*) FROM schema_migrations WHERE version = '002_add_permissions');
 
--- Insere permissões para todos os admins existentes com role='admin'
+-- Cria tabela de permissões
+CREATE TABLE IF NOT EXISTS admin_permissions (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    admin_id   INT UNSIGNED NOT NULL,
+    resource   VARCHAR(32) NOT NULL,
+    action     VARCHAR(16) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_perm (admin_id, resource, action),
+    CONSTRAINT fk_perm_admin
+        FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+
+-- Permissões padrão para admins do tipo 'admin'
 INSERT IGNORE INTO admin_permissions (admin_id, resource, action)
 SELECT a.id, r.resource, r.action
 FROM admin_users a
@@ -43,7 +53,7 @@ CROSS JOIN (
 ) r
 WHERE a.role = 'admin';
 
--- Insere somente permissão de visualização para viewers
+-- Permissão de visualização para viewers
 INSERT IGNORE INTO admin_permissions (admin_id, resource, action)
 SELECT a.id, r.resource, 'view'
 FROM admin_users a
@@ -56,3 +66,6 @@ CROSS JOIN (
   SELECT 'audit'
 ) r
 WHERE a.role = 'viewer';
+
+-- Registra como aplicada
+INSERT IGNORE INTO schema_migrations (version) VALUES ('002_add_permissions');

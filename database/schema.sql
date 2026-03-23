@@ -1,15 +1,29 @@
 -- ============================================================
--- FreeRADIUS + RadiusManager Schema para MariaDB
+-- FreeRADIUS + RadiusManager — Schema completo para MariaDB
+-- Versão: consolidada (inclui todas as features até migration 003)
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE radius;
 
 -- ============================================================
+-- CONTROLE DE MIGRATIONS
+-- Registra quais migrations já foram aplicadas no banco.
+-- O update.sh verifica esta tabela antes de aplicar qualquer
+-- arquivo de migration, tornando o processo idempotente.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version     VARCHAR(64) NOT NULL,
+    applied_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (version)
+);
+
+-- ============================================================
 -- TABELAS NATIVAS DO FREERADIUS
 -- ============================================================
 
--- Atributos de autenticação dos usuários (senha, etc.)
+-- Atributos de autenticação dos usuários
+-- Exemplos de atributos: Cleartext-Password, Auth-Type, Simultaneous-Use
 CREATE TABLE IF NOT EXISTS radcheck (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     username    VARCHAR(64) NOT NULL DEFAULT '',
@@ -20,7 +34,7 @@ CREATE TABLE IF NOT EXISTS radcheck (
     KEY username (username(32))
 );
 
--- Atributos de resposta (VLAN, etc.)
+-- Atributos de resposta por usuário (ex.: endereço IP fixo)
 CREATE TABLE IF NOT EXISTS radreply (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     username    VARCHAR(64) NOT NULL DEFAULT '',
@@ -31,7 +45,7 @@ CREATE TABLE IF NOT EXISTS radreply (
     KEY username (username(32))
 );
 
--- Membros dos grupos
+-- Associação usuário ↔ grupo
 CREATE TABLE IF NOT EXISTS radusergroup (
     username    VARCHAR(64) NOT NULL DEFAULT '',
     groupname   VARCHAR(64) NOT NULL DEFAULT '',
@@ -39,7 +53,7 @@ CREATE TABLE IF NOT EXISTS radusergroup (
     KEY username (username(32))
 );
 
--- Atributos de check dos grupos
+-- Atributos de check por grupo
 CREATE TABLE IF NOT EXISTS radgroupcheck (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     groupname   VARCHAR(64) NOT NULL DEFAULT '',
@@ -50,7 +64,7 @@ CREATE TABLE IF NOT EXISTS radgroupcheck (
     KEY groupname (groupname(32))
 );
 
--- Atributos de reply dos grupos (VLAN por grupo)
+-- Atributos de reply por grupo (VLAN 802.1Q, etc.)
 CREATE TABLE IF NOT EXISTS radgroupreply (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     groupname   VARCHAR(64) NOT NULL DEFAULT '',
@@ -61,7 +75,8 @@ CREATE TABLE IF NOT EXISTS radgroupreply (
     KEY groupname (groupname(32))
 );
 
--- Log de autenticações (accounting)
+-- Accounting: registra cada sessão de conexão dos usuários
+-- O campo calledstationid guarda AP-MAC:SSID nos Access Points Unifi
 CREATE TABLE IF NOT EXISTS radacct (
     radacctid           BIGINT NOT NULL AUTO_INCREMENT,
     acctsessionid       VARCHAR(64) NOT NULL DEFAULT '',
@@ -96,7 +111,7 @@ CREATE TABLE IF NOT EXISTS radacct (
     KEY nasipaddress (nasipaddress)
 );
 
--- Controle de NAS (Access Points / switches)
+-- NAS / Access Points que se comunicam com o FreeRADIUS
 CREATE TABLE IF NOT EXISTS nas (
     id          INT NOT NULL AUTO_INCREMENT,
     nasname     VARCHAR(128) NOT NULL,
@@ -111,11 +126,23 @@ CREATE TABLE IF NOT EXISTS nas (
     KEY nasname (nasname)
 );
 
+-- Log de autenticações (necessário para a seção post-auth do FreeRADIUS)
+CREATE TABLE IF NOT EXISTS radpostauth (
+    id          BIGINT NOT NULL AUTO_INCREMENT,
+    username    VARCHAR(64) NOT NULL DEFAULT '',
+    pass        VARCHAR(64) NOT NULL DEFAULT '',
+    reply       VARCHAR(32) NOT NULL DEFAULT '',
+    authdate    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY username (username),
+    KEY authdate (authdate)
+);
+
 -- ============================================================
 -- TABELAS CUSTOMIZADAS DO RADIUS MANAGER
 -- ============================================================
 
--- Administradores do painel web
+-- Administradores do painel web (separados dos usuários RADIUS)
 CREATE TABLE IF NOT EXISTS admin_users (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     username    VARCHAR(64) NOT NULL,
@@ -131,13 +158,26 @@ CREATE TABLE IF NOT EXISTS admin_users (
     UNIQUE KEY username (username)
 );
 
--- Perfis de VLAN por grupo (extensão do radgroupreply com metadados)
+-- Permissões granulares por administrador
+-- superadmin ignora esta tabela (tem acesso total)
+CREATE TABLE IF NOT EXISTS admin_permissions (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    admin_id   INT UNSIGNED NOT NULL,
+    resource   VARCHAR(32) NOT NULL,   -- dashboard, users, groups, nas, sessions, audit
+    action     VARCHAR(16) NOT NULL,   -- view, create, edit, delete, toggle
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_perm (admin_id, resource, action),
+    CONSTRAINT fk_perm_admin
+        FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+
+-- Perfis de VLAN por grupo (metadados para UI e para o FreeRADIUS)
 CREATE TABLE IF NOT EXISTS vlan_profiles (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     groupname   VARCHAR(64) NOT NULL,
     vlan_id     SMALLINT UNSIGNED NOT NULL,
     description VARCHAR(200),
-    color       VARCHAR(7) DEFAULT '#6366f1',  -- cor para UI
+    color       VARCHAR(7) DEFAULT '#6366f1',
     active      TINYINT(1) NOT NULL DEFAULT 1,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -145,20 +185,25 @@ CREATE TABLE IF NOT EXISTS vlan_profiles (
     UNIQUE KEY vlan_id (vlan_id)
 );
 
--- Metadados extras dos usuários radius
+-- Perfis estendidos dos usuários RADIUS
+-- simultaneous_connections: NULL = ilimitado | 1..N = máximo de sessões ativas
+-- O FreeRADIUS usa o atributo "Simultaneous-Use" em radcheck para o enforcement.
+-- O Radius Manager mantém os dois sincronizados automaticamente.
 CREATE TABLE IF NOT EXISTS user_profiles (
-    id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    username        VARCHAR(64) NOT NULL,
-    full_name       VARCHAR(128),
-    email           VARCHAR(128),
-    phone           VARCHAR(32),
-    department      VARCHAR(128),
-    notes           TEXT,
-    active          TINYINT(1) NOT NULL DEFAULT 1,
-    expires_at      DATETIME DEFAULT NULL,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by      VARCHAR(64),
+    id                       INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    username                 VARCHAR(64) NOT NULL,
+    full_name                VARCHAR(128),
+    email                    VARCHAR(128),
+    phone                    VARCHAR(32),
+    department               VARCHAR(128),
+    notes                    TEXT,
+    active                   TINYINT(1) NOT NULL DEFAULT 1,
+    expires_at               DATETIME DEFAULT NULL,
+    simultaneous_connections TINYINT UNSIGNED DEFAULT NULL
+        COMMENT 'NULL = ilimitado. Sincronizado com radcheck.Simultaneous-Use',
+    created_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by               VARCHAR(64),
     PRIMARY KEY (id),
     UNIQUE KEY username (username)
 );
@@ -182,11 +227,13 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- DADOS INICIAIS
 -- ============================================================
 
--- Admin padrão: admin / Admin@123 (trocar após primeiro login)
+-- Admin padrão: admin / Admin@123
+-- O install.sh regenera este hash via bcryptjs logo após importar o schema,
+-- garantindo que o hash seja compatível com a versão exata da lib instalada.
 INSERT IGNORE INTO admin_users (username, password, full_name, role)
 VALUES ('admin', '$2b$12$wTRSZhsojF0/D16ZdZDYKe7gJqgdfmg0/vBburcfH/OqXSEC3FyGu', 'Administrador', 'superadmin');
 
--- VLANs de exemplo
+-- VLANs de exemplo (ajuste conforme a rede)
 INSERT IGNORE INTO vlan_profiles (groupname, vlan_id, description, color) VALUES
 ('funcionarios',  10, 'Rede Funcionários',   '#10b981'),
 ('gestores',      20, 'Rede Gestores',        '#6366f1'),
@@ -194,35 +241,27 @@ INSERT IGNORE INTO vlan_profiles (groupname, vlan_id, description, color) VALUES
 ('ti',            40, 'Rede TI',              '#3b82f6'),
 ('bloqueados',    99, 'Sem acesso / Bloq.',   '#ef4444');
 
--- Configura replies de VLAN para cada grupo (padrão 802.1Q)
+-- Attributes 802.1Q de VLAN por grupo
 INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) VALUES
-('funcionarios',  'Tunnel-Type',          ':=', '13'),
-('funcionarios',  'Tunnel-Medium-Type',   ':=', '6'),
+('funcionarios',  'Tunnel-Type',             ':=', '13'),
+('funcionarios',  'Tunnel-Medium-Type',      ':=', '6'),
 ('funcionarios',  'Tunnel-Private-Group-Id', ':=', '10'),
-('gestores',      'Tunnel-Type',          ':=', '13'),
-('gestores',      'Tunnel-Medium-Type',   ':=', '6'),
+('gestores',      'Tunnel-Type',             ':=', '13'),
+('gestores',      'Tunnel-Medium-Type',      ':=', '6'),
 ('gestores',      'Tunnel-Private-Group-Id', ':=', '20'),
-('visitantes',    'Tunnel-Type',          ':=', '13'),
-('visitantes',    'Tunnel-Medium-Type',   ':=', '6'),
+('visitantes',    'Tunnel-Type',             ':=', '13'),
+('visitantes',    'Tunnel-Medium-Type',      ':=', '6'),
 ('visitantes',    'Tunnel-Private-Group-Id', ':=', '30'),
-('ti',            'Tunnel-Type',          ':=', '13'),
-('ti',            'Tunnel-Medium-Type',   ':=', '6'),
+('ti',            'Tunnel-Type',             ':=', '13'),
+('ti',            'Tunnel-Medium-Type',      ':=', '6'),
 ('ti',            'Tunnel-Private-Group-Id', ':=', '40');
 
--- NAS de exemplo
+-- NAS de exemplo — substitua pelo IP real dos seus APs Unifi
 INSERT IGNORE INTO nas (nasname, shortname, type, secret, description) VALUES
-('192.168.1.1', 'AP-Principal', 'cisco', 'secret_radius_123', 'Access Point Principal');
+('192.168.1.1', 'AP-Principal', 'other', 'secret_radius_123', 'Access Point Principal (Unifi)');
 
--- ============================================================
--- TABELA radpostauth (requerida pelo FreeRADIUS — logging de auth)
--- ============================================================
-CREATE TABLE IF NOT EXISTS radpostauth (
-    id          BIGINT NOT NULL AUTO_INCREMENT,
-    username    VARCHAR(64) NOT NULL DEFAULT '',
-    pass        VARCHAR(64) NOT NULL DEFAULT '',
-    reply       VARCHAR(32) NOT NULL DEFAULT '',
-    authdate    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY username (username),
-    KEY authdate (authdate)
-);
+-- Marca todas as migrations como já aplicadas nesta instalação limpa
+-- (o schema já as incorpora; não precisam ser re-executadas)
+INSERT IGNORE INTO schema_migrations (version) VALUES
+('002_add_permissions'),
+('003_simultaneous_connections');

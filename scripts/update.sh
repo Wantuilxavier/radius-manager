@@ -24,6 +24,58 @@ fi
 
 cd "${INSTALL_DIR}" || error "Diretório ${INSTALL_DIR} não encontrado."
 
+# ─── Carrega credenciais do banco a partir do .env ───────────
+ENV_FILE="${INSTALL_DIR}/backend/.env"
+if [ ! -f "${ENV_FILE}" ]; then
+  error "Arquivo .env não encontrado em ${ENV_FILE}. Instalação incompleta?"
+fi
+
+DB_NAME=$(grep '^DB_NAME=' "${ENV_FILE}" | cut -d= -f2-)
+DB_USER=$(grep '^DB_USER=' "${ENV_FILE}" | cut -d= -f2-)
+DB_PASS=$(grep '^DB_PASS=' "${ENV_FILE}" | cut -d= -f2-)
+
+# ─── Função: aplica migrations pendentes ─────────────────────
+run_pending_migrations() {
+  local mig_dir="${INSTALL_DIR}/database/migrations"
+  if [ ! -d "${mig_dir}" ]; then
+    return 0
+  fi
+
+  # Garante que a tabela de controle existe no banco
+  mariadb -u root "${DB_NAME}" -e "
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    VARCHAR(64) NOT NULL,
+      applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (version)
+    );" 2>/dev/null
+
+  local found_new=0
+  # Processa os arquivos em ordem lexicográfica (001, 002, 003, ...)
+  for mig_file in $(ls "${mig_dir}"/*.sql 2>/dev/null | sort); do
+    local version
+    version=$(basename "${mig_file}" .sql)
+
+    # Verifica se já foi aplicada
+    local applied
+    applied=$(mariadb -u root "${DB_NAME}" -sN \
+      -e "SELECT COUNT(*) FROM schema_migrations WHERE version = '${version}';" 2>/dev/null || echo 0)
+
+    if [ "${applied}" -eq 0 ]; then
+      info "Aplicando migration: ${version}"
+      if mariadb -u root "${DB_NAME}" < "${mig_file}"; then
+        success "Migration aplicada: ${version}"
+        found_new=1
+      else
+        error "Falha ao aplicar migration ${version}. Verifique o banco antes de prosseguir."
+      fi
+    fi
+  done
+
+  if [ "${found_new}" -eq 0 ]; then
+    info "Banco de dados já está atualizado (nenhuma migration pendente)"
+  fi
+}
+
 # ─── 1. Verifica se é um repositório git ─────────────────────
 if [ ! -d ".git" ]; then
   error "Diretório não é um repositório git. Execute o setup-github.sh primeiro."
@@ -33,24 +85,19 @@ step "Verificando atualizações no GitHub"
 git fetch origin main
 
 # ─── Detecta se o repositório local tem commits ───────────────
-# Caso o servidor nunca tenha feito pull (repositório vazio localmente)
 if ! git rev-parse HEAD > /dev/null 2>&1; then
   info "Repositório local sem commits — aplicando pull inicial..."
 
-  # Backup do .env antes de qualquer coisa
   mkdir -p "${BACKUP_DIR}"
   if [ -f "${INSTALL_DIR}/backend/.env" ]; then
     cp "${INSTALL_DIR}/backend/.env" "${BACKUP_DIR}/.env.${DATE}.bak"
     info "Backup do .env salvo em ${BACKUP_DIR}/.env.${DATE}.bak"
   fi
 
-  # Pull inicial — descarta mudanças locais e força sincronização com GitHub
-  # (arquivos locais podem ter sido modificados durante a instalação)
   git reset --hard
   git clean -fd
   git pull origin main
 
-  # Restaura o .env (o pull pode ter sobrescrito com o .env.example)
   if [ -f "${BACKUP_DIR}/.env.${DATE}.bak" ]; then
     cp "${BACKUP_DIR}/.env.${DATE}.bak" "${INSTALL_DIR}/backend/.env"
     chmod 600 "${INSTALL_DIR}/backend/.env"
@@ -59,7 +106,9 @@ if ! git rev-parse HEAD > /dev/null 2>&1; then
 
   success "Pull inicial concluído"
 
-  # Instala dependências e reinicia
+  step "Aplicando migrations pendentes"
+  run_pending_migrations
+
   cd "${INSTALL_DIR}/backend"
   npm install --omit=dev
   export PATH="/root/.npm-global/bin:${PATH}"
@@ -78,6 +127,10 @@ LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse origin/main)
 
 if [ "$LOCAL" = "$REMOTE" ]; then
+  # Mesmo na versão atual, verifica se há migrations pendentes
+  # (útil quando aplicadas manualmente fora do ciclo de update)
+  step "Verificando migrations pendentes"
+  run_pending_migrations
   success "Já está na versão mais recente (${LOCAL:0:8})"
   exit 0
 fi
@@ -107,7 +160,11 @@ if [ ! -f "${INSTALL_DIR}/backend/.env" ]; then
   chmod 600 "${INSTALL_DIR}/backend/.env"
 fi
 
-# ─── 5. Atualiza dependências se package.json mudou ──────────
+# ─── 5. Aplica migrations de banco pendentes ─────────────────
+step "Aplicando migrations de banco de dados"
+run_pending_migrations
+
+# ─── 6. Atualiza dependências se package.json mudou ──────────
 step "Verificando dependências Node.js"
 cd "${INSTALL_DIR}/backend"
 
@@ -117,12 +174,6 @@ if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -q "package.json"; then
   success "Dependências atualizadas"
 else
   info "Sem mudanças em dependências"
-fi
-
-# ─── 6. Aviso se schema.sql mudou ────────────────────────────
-if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -q "database/schema.sql"; then
-  warn "schema.sql foi modificado — revise antes de aplicar:"
-  warn "  git diff HEAD@{1} HEAD -- database/schema.sql"
 fi
 
 # ─── 7. Reinicia a aplicação ─────────────────────────────────
