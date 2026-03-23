@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radius Manager</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>📡</text></svg>">
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">📡</div>
+      <div>
+        <h1>Radius Manager</h1>
+        <span>FreeRADIUS · VLAN Management</span>
+      </div>
+    </div>
+    <div id="login-error" class="login-error"></div>
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">Usuário</label>
+        <input id="login-username" class="form-input" type="text" placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input id="login-password" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <button id="login-btn" class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:11px">Entrar</button>
+    </form>
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">Acesso restrito a administradores de rede</p>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">📡</div>
+      <div class="brand-text">
+        <h2>RadiusManager</h2>
+        <p>FreeRADIUS v3</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-label">Principal</div>
+        <div class="nav-item" data-page="dashboard">
+          <span class="icon">⬛</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="users">
+          <span class="icon">👤</span> Usuários
+        </div>
+        <div class="nav-item" data-page="groups">
+          <span class="icon">🏷️</span> Grupos / VLANs
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Monitoramento</div>
+        <div class="nav-item" data-page="sessions">
+          <span class="icon">📡</span> Sessões Ativas
+        </div>
+        <div class="nav-item" data-page="audit">
+          <span class="icon">📋</span> Log de Auditoria
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Administração</div>
+        <div class="nav-item" data-page="nas">
+          <span class="icon">🖧</span> Dispositivos NAS
+        </div>
+        <div class="nav-item" data-page="settings">
+          <span class="icon">⚙️</span> Configurações
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="sidebar-username">Administrador</div>
+          <div class="role" id="sidebar-role">superadmin</div>
+          <div class="logout" id="btn-logout">Sair da conta</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ── Dashboard ── -->
+    <div id="page-dashboard" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Dashboard</h1>
+          <p>Visão geral da rede WiFi e autenticações RADIUS</p>
+        </div>
+        <button class="btn btn-ghost" onclick="loadDashboard()">↺ Atualizar</button>
+      </div>
+      <div class="page-content">
+        <div id="dashboard-content"></div>
+      </div>
+    </div>
+
+    <!-- ── Users ── -->
+    <div id="page-users" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Usuários</h1>
+          <p>Gerencie usuários de autenticação WiFi</p>
+        </div>
+        <button class="btn btn-primary" onclick="createUser()">＋ Novo Usuário</button>
+      </div>
+      <div class="page-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="toolbar">
+              <div class="search-box">
+                <span class="icon">🔍</span>
+                <input id="search-users" class="form-input" type="text" placeholder="Buscar por usuário, nome, email...">
+              </div>
+              <select id="filter-group" class="form-select" style="width:200px">
+                <option value="">Todos os grupos</option>
+              </select>
+              <select id="filter-active" class="form-select" style="width:150px">
+                <option value="">Todos os status</option>
+                <option value="1">Somente ativos</option>
+                <option value="0">Somente inativos</option>
+              </select>
+            </div>
+            <span id="users-count" style="font-size:12px;color:var(--text-muted);white-space:nowrap"></span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuário</th>
+                  <th>Email</th>
+                  <th>Departamento</th>
+                  <th>Grupo / VLAN</th>
+                  <th>Status</th>
+                  <th>Criado em</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="7"><div class="loading-overlay"><span class="spinner"></span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="users-pagination" class="pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Groups ── -->
+    <div id="page-groups" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Grupos / VLANs</h1>
+          <p>Configure os grupos de usuários e suas VLANs de destino</p>
+        </div>
+        <button class="btn btn-primary" onclick="openNewGroupModal()">＋ Nova VLAN</button>
+      </div>
+      <div class="page-content">
+        <div id="groups-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- ── Sessions ── -->
+    <div id="page-sessions" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Sessões Ativas</h1>
+          <p>Usuários conectados à rede WiFi no momento</p>
+        </div>
+      </div>
+      <div class="page-content">
+        <div id="sessions-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- ── Audit ── -->
+    <div id="page-audit" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Log de Auditoria</h1>
+          <p>Registro de todas as ações administrativas</p>
+        </div>
+      </div>
+      <div class="page-content">
+        <div id="audit-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- ── NAS ── -->
+    <div id="page-nas" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Dispositivos NAS</h1>
+          <p>Access Points e switches autorizados a usar este servidor RADIUS</p>
+        </div>
+        <button class="btn btn-primary" id="btn-new-nas" onclick="openNewNasModal()">＋ Novo Dispositivo</button>
+      </div>
+      <div class="page-content">
+        <div id="nas-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- ── Settings ── -->
+    <div id="page-settings" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Configurações</h1>
+          <p>Gerenciamento de administradores e senha da conta</p>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="grid-2" style="align-items:start">
+
+          <!-- Troca de senha -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">🔑 Alterar minha senha</span></div>
+            <div class="card-body">
+              <div id="chpw-error"  class="login-error" style="display:none"></div>
+              <div id="chpw-success" style="display:none;background:var(--green-dim);border:1px solid rgba(52,211,153,.3);color:var(--green);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:16px;font-size:13px"></div>
+              <div class="form-group">
+                <label class="form-label">Senha atual</label>
+                <input id="chpw-current" class="form-input" type="password" placeholder="••••••••">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nova senha</label>
+                <input id="chpw-new" class="form-input" type="password" placeholder="Mínimo 8 caracteres">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirmar nova senha</label>
+                <input id="chpw-confirm" class="form-input" type="password" placeholder="Repita a nova senha">
+              </div>
+              <button class="btn btn-primary" onclick="submitChangePassword()" style="width:100%;justify-content:center">Alterar senha</button>
+            </div>
+          </div>
+
+          <!-- Administradores -->
+          <div class="card" id="admins-card">
+            <div class="card-header">
+              <span class="card-title">👥 Administradores</span>
+              <button class="btn btn-primary btn-sm" onclick="openNewAdminModal()">＋ Novo Admin</button>
+            </div>
+            <div id="admins-list" class="card-body">
+              <div class="loading-overlay"><span class="spinner"></span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════ MODALS ═══════════════════════════════════════ -->
+
+<!-- Modal: Novo Usuário -->
+<div id="modal-new-user" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Novo Usuário</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="new-user-error" class="login-error" style="display:none"></div>
+      <form id="form-new-user" onsubmit="e=>e.preventDefault()">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Usuário (login) <span class="form-required">*</span></label>
+            <input id="new-username" class="form-input" type="text" placeholder="joao.silva" autocomplete="off">
+            <div class="form-hint">Apenas letras, números, ponto e hífen</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Senha <span class="form-required">*</span></label>
+            <input id="new-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grupo / VLAN <span class="form-required">*</span></label>
+          <select id="new-group" class="form-select"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome completo</label>
+            <input id="new-fullname" class="form-input" type="text" placeholder="João Silva">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="new-email" class="form-input" type="email" placeholder="joao@empresa.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input id="new-phone" class="form-input" type="text" placeholder="(83) 99999-0000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Departamento</label>
+            <input id="new-department" class="form-input" type="text" placeholder="TI, RH, Financeiro...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expira em</label>
+          <input id="new-expires" class="form-input" type="datetime-local">
+          <div class="form-hint">Deixe em branco para não expirar</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea id="new-notes" class="form-textarea" placeholder="Informações adicionais..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-user')">Cancelar</button>
+      <button id="btn-create-user" class="btn btn-primary" onclick="submitNewUser()">Criar Usuário</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Usuário -->
+<div id="modal-edit-user" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span id="edit-user-title" class="modal-title">Editar Usuário</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input id="edit-username-val" type="hidden">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nova senha (opcional)</label>
+          <input id="edit-password" class="form-input" type="password" placeholder="Deixe em branco para não alterar" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grupo / VLAN</label>
+          <select id="edit-group" class="form-select"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input id="edit-fullname" class="form-input" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="edit-email" class="form-input" type="email">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Telefone</label>
+          <input id="edit-phone" class="form-input" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Departamento</label>
+          <input id="edit-department" class="form-input" type="text">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expira em</label>
+        <input id="edit-expires" class="form-input" type="datetime-local">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea id="edit-notes" class="form-textarea"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-user')">Cancelar</button>
+      <button id="btn-save-edit" class="btn btn-primary" onclick="submitEditUser()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ver Usuário -->
+<div id="modal-view-user" class="modal-overlay">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span id="view-user-title" class="modal-title">Detalhes do Usuário</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div id="view-user-body" class="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-view-user')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Grupo -->
+<div id="modal-new-group" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Nova VLAN / Grupo</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="new-group-error" class="login-error" style="display:none"></div>
+      <form id="form-new-group" onsubmit="e=>e.preventDefault()">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome do grupo <span class="form-required">*</span></label>
+            <input id="ng-groupname" class="form-input" type="text" placeholder="funcionarios">
+            <div class="form-hint">Sem espaços — use underline</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">VLAN ID <span class="form-required">*</span></label>
+            <input id="ng-vlan" class="form-input" type="number" min="1" max="4094" placeholder="10">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <input id="ng-desc" class="form-input" type="text" placeholder="Rede para funcionários da empresa">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cor (identificação visual)</label>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input id="ng-color" class="form-input" type="color" value="#6366f1" style="width:60px;padding:4px;height:38px;cursor:pointer">
+            <span style="font-size:12px;color:var(--text-muted)">Usada para identificação no painel</span>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-group')">Cancelar</button>
+      <button id="btn-create-group" class="btn btn-primary" onclick="submitNewGroup()">Criar Grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Grupo -->
+<div id="modal-edit-group" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Grupo / VLAN</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="edit-group-error" class="login-error" style="display:none"></div>
+      <input id="eg-orig-name" type="hidden">
+      <div class="form-group">
+        <label class="form-label">Nome do grupo</label>
+        <input id="eg-groupname" class="form-input" type="text" disabled>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">VLAN ID</label>
+          <input id="eg-vlan" class="form-input" type="number" min="1" max="4094">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cor</label>
+          <input id="eg-color" class="form-input" type="color" style="width:100%;padding:4px;height:38px;cursor:pointer">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input id="eg-desc" class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:10px">
+          <label class="toggle">
+            <input id="eg-active" type="checkbox">
+            <span class="toggle-slider"></span>
+          </label>
+          Grupo ativo
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-group')">Cancelar</button>
+      <button id="btn-save-group" class="btn btn-primary" onclick="submitEditGroup()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo NAS -->
+<div id="modal-new-nas" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo Dispositivo NAS</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="new-nas-error" class="login-error" style="display:none"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">IP / Hostname <span class="form-required">*</span></label>
+          <input id="nas-ip" class="form-input" type="text" placeholder="192.168.1.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome curto</label>
+          <input id="nas-shortname" class="form-input" type="text" placeholder="AP-Sala01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select id="nas-type" class="form-select">
+            <option value="other">other</option>
+            <option value="cisco">Cisco</option>
+            <option value="computone">Computone</option>
+            <option value="livingston">Livingston</option>
+            <option value="max40xx">Max40xx</option>
+            <option value="multitech">Multitech</option>
+            <option value="netserver">Netserver</option>
+            <option value="pathras">Pathras</option>
+            <option value="patton">Patton</option>
+            <option value="portslave">Portslave</option>
+            <option value="tc">TC</option>
+            <option value="usrhiper">USRHiper</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Porta (opcional)</label>
+          <input id="nas-ports" class="form-input" type="number" placeholder="1812">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Secret <span class="form-required">*</span></label>
+        <input id="nas-secret" class="form-input" type="text" placeholder="shared_secret_aqui" autocomplete="off">
+        <div class="form-hint">Deve ser igual ao configurado no Access Point / Switch</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input id="nas-desc" class="form-input" type="text" placeholder="AP do corredor leste, 2º andar">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-nas')">Cancelar</button>
+      <button id="btn-create-nas" class="btn btn-primary" onclick="submitNewNas()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar NAS -->
+<div id="modal-edit-nas" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Dispositivo NAS</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="edit-nas-error" class="login-error" style="display:none"></div>
+      <input id="edit-nas-id" type="hidden">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">IP / Hostname</label>
+          <input id="edit-nas-ip" class="form-input" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome curto</label>
+          <input id="edit-nas-shortname" class="form-input" type="text">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select id="edit-nas-type" class="form-select">
+            <option value="other">other</option>
+            <option value="cisco">Cisco</option>
+            <option value="computone">Computone</option>
+            <option value="livingston">Livingston</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Porta</label>
+          <input id="edit-nas-ports" class="form-input" type="number">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Secret</label>
+        <input id="edit-nas-secret" class="form-input" type="text" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input id="edit-nas-desc" class="form-input" type="text">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-nas')">Cancelar</button>
+      <button id="btn-save-nas" class="btn btn-primary" onclick="submitEditNas()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Admin -->
+<div id="modal-new-admin" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo Administrador</span>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="new-admin-error" class="login-error" style="display:none"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Usuário <span class="form-required">*</span></label>
+          <input id="new-admin-username" class="form-input" type="text" placeholder="joao.admin">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha <span class="form-required">*</span></label>
+          <input id="new-admin-password" class="form-input" type="password" placeholder="Mínimo 8 caracteres">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input id="new-admin-fullname" class="form-input" type="text" placeholder="João da Silva">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="new-admin-email" class="form-input" type="email" placeholder="joao@empresa.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nível de acesso</label>
+        <select id="new-admin-role" class="form-select">
+          <option value="admin">Admin — pode gerenciar usuários e grupos</option>
+          <option value="viewer">Viewer — somente leitura</option>
+          <option value="superadmin">Superadmin — acesso total</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-admin')">Cancelar</button>
+      <button id="btn-create-admin" class="btn btn-primary" onclick="submitNewAdmin()">Criar Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="js/utils.js"></script>
+<script src="js/app.js"></script>
+<script src="js/users.js"></script>
+<script src="js/groups-sessions.js"></script>
+<script src="js/nas.js"></script>
+<script src="js/settings.js"></script>
+<script>
+  // Initialize filters after DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initUserFilters, 100);
+  });
+</script>
+</body>
+</html>
