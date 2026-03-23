@@ -32,6 +32,48 @@ fi
 step "Verificando atualizações no GitHub"
 git fetch origin main
 
+# ─── Detecta se o repositório local tem commits ───────────────
+# Caso o servidor nunca tenha feito pull (repositório vazio localmente)
+if ! git rev-parse HEAD > /dev/null 2>&1; then
+  info "Repositório local sem commits — aplicando pull inicial..."
+
+  # Backup do .env antes de qualquer coisa
+  mkdir -p "${BACKUP_DIR}"
+  if [ -f "${INSTALL_DIR}/backend/.env" ]; then
+    cp "${INSTALL_DIR}/backend/.env" "${BACKUP_DIR}/.env.${DATE}.bak"
+    info "Backup do .env salvo em ${BACKUP_DIR}/.env.${DATE}.bak"
+  fi
+
+  # Pull inicial — descarta mudanças locais e força sincronização com GitHub
+  # (arquivos locais podem ter sido modificados durante a instalação)
+  git reset --hard
+  git clean -fd
+  git pull origin main
+
+  # Restaura o .env (o pull pode ter sobrescrito com o .env.example)
+  if [ -f "${BACKUP_DIR}/.env.${DATE}.bak" ]; then
+    cp "${BACKUP_DIR}/.env.${DATE}.bak" "${INSTALL_DIR}/backend/.env"
+    chmod 600 "${INSTALL_DIR}/backend/.env"
+    success ".env restaurado do backup"
+  fi
+
+  success "Pull inicial concluído"
+
+  # Instala dependências e reinicia
+  cd "${INSTALL_DIR}/backend"
+  npm install --omit=dev
+  export PATH="/root/.npm-global/bin:${PATH}"
+  pm2 restart radius-manager 2>/dev/null || pm2 start "${INSTALL_DIR}/backend/ecosystem.config.js" --env production
+  pm2 save
+  success "Aplicação reiniciada"
+  echo ""
+  echo -e "${GREEN}${BOLD}✅ Servidor sincronizado: $(git rev-parse --short HEAD)${NC}"
+  echo -e "   $(git log -1 --pretty='%s')"
+  echo ""
+  exit 0
+fi
+
+# ─── Fluxo normal: repositório já tem commits ─────────────────
 LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse origin/main)
 
