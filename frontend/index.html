@@ -1,47 +1,199 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radius Manager</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>📡</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366F1' stroke-width='2'%3E%3Cpath d='M5 12.55a11 11 0 0 1 14.08 0'/%3E%3Cpath d='M1.42 9a16 16 0 0 1 21.16 0'/%3E%3Cpath d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Ccircle cx='12' cy='20' r='1' fill='%236366F1'/%3E%3C/svg%3E">
 </head>
 <body>
 
-<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<!-- ══════════════════════ SVG ICON SPRITE ══════════════════════ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <!-- WiFi / Brand -->
+  <symbol id="ic-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/>
+  </symbol>
+  <!-- Dashboard / Grid -->
+  <symbol id="ic-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+    <rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>
+  </symbol>
+  <!-- Users -->
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </symbol>
+  <!-- Tag / Groups -->
+  <symbol id="ic-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+    <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5"/>
+  </symbol>
+  <!-- Sessions / Activity -->
+  <symbol id="ic-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </symbol>
+  <!-- Audit / Clipboard -->
+  <symbol id="ic-audit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+  </symbol>
+  <!-- NAS / Server -->
+  <symbol id="ic-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
+    <line x1="6" y1="6" x2="6.01" y2="6" stroke-width="2.5"/><line x1="6" y1="18" x2="6.01" y2="18" stroke-width="2.5"/>
+  </symbol>
+  <!-- Settings / Cog -->
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </symbol>
+  <!-- Logout -->
+  <symbol id="ic-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </symbol>
+  <!-- Sun -->
+  <symbol id="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="5"/>
+    <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </symbol>
+  <!-- Moon -->
+  <symbol id="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </symbol>
+  <!-- Search -->
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </symbol>
+  <!-- Plus -->
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+  <!-- Refresh -->
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </symbol>
+  <!-- X / Close -->
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </symbol>
+  <!-- Check -->
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <!-- Alert Circle -->
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2.5"/>
+  </symbol>
+  <!-- Info -->
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="2.5"/>
+  </symbol>
+  <!-- Edit / Pencil -->
+  <symbol id="ic-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </symbol>
+  <!-- Trash -->
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+  </symbol>
+  <!-- Eye -->
+  <symbol id="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <!-- Power / Toggle user -->
+  <symbol id="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+  </symbol>
+  <!-- User Check -->
+  <symbol id="ic-user-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+    <polyline points="17 11 19 13 23 9"/>
+  </symbol>
+  <!-- User X -->
+  <symbol id="ic-user-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+    <line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/>
+  </symbol>
+  <!-- Bar Chart -->
+  <symbol id="ic-barchart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </symbol>
+  <!-- Network -->
+  <symbol id="ic-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="2" width="6" height="4" rx="1"/><rect x="1" y="18" width="6" height="4" rx="1"/>
+    <rect x="17" y="18" width="6" height="4" rx="1"/><line x1="12" y1="6" x2="12" y2="11"/>
+    <path d="M4 18v-4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/>
+  </symbol>
+  <!-- Key -->
+  <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+  </symbol>
+  <!-- Shield -->
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </symbol>
+</svg>
+
+<!-- ══════════════════════ LOGIN ══════════════════════════════ -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-icon">📡</div>
-      <div>
+      <div class="login-logo-icon">
+        <svg><use href="#ic-wifi"/></svg>
+      </div>
+      <div class="login-logo-text">
         <h1>Radius Manager</h1>
-        <span>FreeRADIUS · VLAN Management</span>
+        <span>FreeRADIUS · 802.1X · VLAN</span>
       </div>
     </div>
-    <div id="login-error" class="login-error"></div>
+
+    <div class="login-welcome">
+      <h2>Bem-vindo de volta</h2>
+      <p>Faça login para acessar o painel de gerenciamento</p>
+    </div>
+
+    <div id="login-error" class="login-error">
+      <svg><use href="#ic-alert"/></svg>
+      <span id="login-error-msg"></span>
+    </div>
+
     <form id="login-form">
       <div class="form-group">
         <label class="form-label">Usuário</label>
         <input id="login-username" class="form-input" type="text" placeholder="admin" autocomplete="username" required>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:24px">
         <label class="form-label">Senha</label>
         <input id="login-password" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password" required>
       </div>
-      <button id="login-btn" class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:11px">Entrar</button>
+      <button id="login-btn" class="btn btn-primary" type="submit" style="width:100%;justify-content:center;padding:11px 16px;font-size:14px">
+        Entrar
+      </button>
     </form>
-    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">Acesso restrito a administradores de rede</p>
+
+    <p class="login-footer">Acesso restrito a administradores de rede</p>
   </div>
 </div>
 
-<!-- ═══════════════════ APP ═══════════════════ -->
+<!-- ══════════════════════ APP ════════════════════════════════ -->
 <div id="app">
 
-  <!-- SIDEBAR -->
+  <!-- ─── SIDEBAR ─── -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-icon">📡</div>
+      <div class="brand-icon">
+        <svg><use href="#ic-wifi"/></svg>
+      </div>
       <div class="brand-text">
         <h2>RadiusManager</h2>
         <p>FreeRADIUS v3</p>
@@ -50,33 +202,33 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section">
-        <div class="nav-label">Principal</div>
+        <span class="nav-label">Principal</span>
         <div class="nav-item" data-page="dashboard">
-          <span class="icon">⬛</span> Dashboard
+          <svg><use href="#ic-dashboard"/></svg> Dashboard
         </div>
         <div class="nav-item" data-page="users">
-          <span class="icon">👤</span> Usuários
+          <svg><use href="#ic-users"/></svg> Usuários
         </div>
         <div class="nav-item" data-page="groups">
-          <span class="icon">🏷️</span> Grupos / VLANs
+          <svg><use href="#ic-tag"/></svg> Grupos / VLANs
         </div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">Monitoramento</div>
+        <span class="nav-label">Monitoramento</span>
         <div class="nav-item" data-page="sessions">
-          <span class="icon">📡</span> Sessões Ativas
+          <svg><use href="#ic-activity"/></svg> Sessões Ativas
         </div>
         <div class="nav-item" data-page="audit">
-          <span class="icon">📋</span> Log de Auditoria
+          <svg><use href="#ic-audit"/></svg> Log de Auditoria
         </div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">Administração</div>
+        <span class="nav-label">Administração</span>
         <div class="nav-item" data-page="nas">
-          <span class="icon">🖧</span> Dispositivos NAS
+          <svg><use href="#ic-server"/></svg> Dispositivos NAS
         </div>
         <div class="nav-item" data-page="settings">
-          <span class="icon">⚙️</span> Configurações
+          <svg><use href="#ic-settings"/></svg> Configurações
         </div>
       </div>
     </nav>
@@ -87,14 +239,35 @@
         <div class="user-info">
           <div class="name" id="sidebar-username">Administrador</div>
           <div class="role" id="sidebar-role">superadmin</div>
-          <div class="logout" id="btn-logout">Sair da conta</div>
         </div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="sidebar-action-btn" id="theme-toggle-btn" title="Alternar tema">
+          <svg id="theme-icon"><use href="#ic-sun"/></svg>
+          <span id="theme-label">Tema claro</span>
+        </button>
+        <button class="sidebar-action-btn danger" id="btn-logout" title="Sair">
+          <svg><use href="#ic-logout"/></svg>
+          Sair
+        </button>
       </div>
     </div>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- ─── MAIN ─── -->
   <main class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-page" id="topbar-page">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle-btn" id="topbar-theme-btn" title="Alternar tema">
+          <svg id="topbar-theme-icon"><use href="#ic-sun"/></svg>
+        </button>
+      </div>
+    </div>
 
     <!-- ── Dashboard ── -->
     <div id="page-dashboard" class="page" style="display:none">
@@ -103,7 +276,11 @@
           <h1>Dashboard</h1>
           <p>Visão geral da rede WiFi e autenticações RADIUS</p>
         </div>
-        <button class="btn btn-ghost" onclick="loadDashboard()">↺ Atualizar</button>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="loadDashboard()">
+            <svg><use href="#ic-refresh"/></svg> Atualizar
+          </button>
+        </div>
       </div>
       <div class="page-content">
         <div id="dashboard-content"></div>
@@ -115,19 +292,23 @@
       <div class="page-header">
         <div class="page-title">
           <h1>Usuários</h1>
-          <p>Gerencie usuários de autenticação WiFi</p>
+          <p>Gerencie usuários de autenticação WiFi 802.1X</p>
         </div>
-        <button class="btn btn-primary" onclick="createUser()">＋ Novo Usuário</button>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="createUser()">
+            <svg><use href="#ic-plus"/></svg> Novo Usuário
+          </button>
+        </div>
       </div>
       <div class="page-content">
         <div class="card">
           <div class="card-header">
             <div class="toolbar">
               <div class="search-box">
-                <span class="icon">🔍</span>
+                <svg><use href="#ic-search"/></svg>
                 <input id="search-users" class="form-input" type="text" placeholder="Buscar por usuário, nome, email...">
               </div>
-              <select id="filter-group" class="form-select" style="width:200px">
+              <select id="filter-group" class="form-select" style="width:190px">
                 <option value="">Todos os grupos</option>
               </select>
               <select id="filter-active" class="form-select" style="width:150px">
@@ -136,7 +317,7 @@
                 <option value="0">Somente inativos</option>
               </select>
             </div>
-            <span id="users-count" style="font-size:12px;color:var(--text-muted);white-space:nowrap"></span>
+            <span id="users-count" style="font-size:12px;color:var(--text-muted);white-space:nowrap;flex-shrink:0"></span>
           </div>
           <div class="table-wrapper">
             <table>
@@ -168,7 +349,11 @@
           <h1>Grupos / VLANs</h1>
           <p>Configure os grupos de usuários e suas VLANs de destino</p>
         </div>
-        <button class="btn btn-primary" onclick="openNewGroupModal()">＋ Nova VLAN</button>
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="openNewGroupModal()">
+            <svg><use href="#ic-plus"/></svg> Nova VLAN
+          </button>
+        </div>
       </div>
       <div class="page-content">
         <div id="groups-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
@@ -193,7 +378,7 @@
       <div class="page-header">
         <div class="page-title">
           <h1>Log de Auditoria</h1>
-          <p>Registro de todas as ações administrativas</p>
+          <p>Registro completo de todas as ações administrativas</p>
         </div>
       </div>
       <div class="page-content">
@@ -208,7 +393,11 @@
           <h1>Dispositivos NAS</h1>
           <p>Access Points e switches autorizados a usar este servidor RADIUS</p>
         </div>
-        <button class="btn btn-primary" id="btn-new-nas" onclick="openNewNasModal()">＋ Novo Dispositivo</button>
+        <div class="page-actions">
+          <button class="btn btn-primary" id="btn-new-nas" onclick="openNewNasModal()">
+            <svg><use href="#ic-plus"/></svg> Novo Dispositivo
+          </button>
+        </div>
       </div>
       <div class="page-content">
         <div id="nas-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
@@ -220,18 +409,29 @@
       <div class="page-header">
         <div class="page-title">
           <h1>Configurações</h1>
-          <p>Gerenciamento de administradores e senha da conta</p>
+          <p>Gerenciamento de administradores e configurações da conta</p>
         </div>
       </div>
       <div class="page-content">
         <div class="grid-2" style="align-items:start">
 
-          <!-- Troca de senha -->
+          <!-- Alterar senha -->
           <div class="card">
-            <div class="card-header"><span class="card-title">🔑 Alterar minha senha</span></div>
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                  <svg style="width:16px;height:16px;color:var(--accent)"><use href="#ic-key"/></svg>
+                  Alterar minha senha
+                </div>
+              </div>
+            </div>
             <div class="card-body">
-              <div id="chpw-error"  class="login-error" style="display:none"></div>
-              <div id="chpw-success" style="display:none;background:var(--green-dim);border:1px solid rgba(52,211,153,.3);color:var(--green);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:16px;font-size:13px"></div>
+              <div id="chpw-error" class="alert-error" style="display:none">
+                <svg><use href="#ic-alert"/></svg><span id="chpw-error-msg"></span>
+              </div>
+              <div id="chpw-success" class="alert-success" style="display:none">
+                <svg><use href="#ic-check"/></svg><span>Senha alterada com sucesso!</span>
+              </div>
               <div class="form-group">
                 <label class="form-label">Senha atual</label>
                 <input id="chpw-current" class="form-input" type="password" placeholder="••••••••">
@@ -244,15 +444,24 @@
                 <label class="form-label">Confirmar nova senha</label>
                 <input id="chpw-confirm" class="form-input" type="password" placeholder="Repita a nova senha">
               </div>
-              <button class="btn btn-primary" onclick="submitChangePassword()" style="width:100%;justify-content:center">Alterar senha</button>
+              <button class="btn btn-primary" onclick="submitChangePassword()" style="width:100%;justify-content:center">
+                Alterar senha
+              </button>
             </div>
           </div>
 
           <!-- Administradores -->
           <div class="card" id="admins-card">
             <div class="card-header">
-              <span class="card-title">👥 Administradores</span>
-              <button class="btn btn-primary btn-sm" onclick="openNewAdminModal()">＋ Novo Admin</button>
+              <div>
+                <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                  <svg style="width:16px;height:16px;color:var(--accent)"><use href="#ic-shield"/></svg>
+                  Administradores
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openNewAdminModal()">
+                <svg><use href="#ic-plus"/></svg> Novo Admin
+              </button>
             </div>
             <div id="admins-list" class="card-body">
               <div class="loading-overlay"><span class="spinner"></span></div>
@@ -266,17 +475,19 @@
   </main>
 </div>
 
-<!-- ═══════ MODALS ═══════════════════════════════════════ -->
+<!-- ═══════════════════════ MODALS ════════════════════════════ -->
 
 <!-- Modal: Novo Usuário -->
 <div id="modal-new-user" class="modal-overlay">
   <div class="modal modal-lg">
     <div class="modal-header">
       <span class="modal-title">Novo Usuário</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="new-user-error" class="login-error" style="display:none"></div>
+      <div id="new-user-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="new-user-error-msg"></span>
+      </div>
       <form id="form-new-user" onsubmit="e=>e.preventDefault()">
         <div class="form-row">
           <div class="form-group">
@@ -318,7 +529,7 @@
           <input id="new-expires" class="form-input" type="datetime-local">
           <div class="form-hint">Deixe em branco para não expirar</div>
         </div>
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Observações</label>
           <textarea id="new-notes" class="form-textarea" placeholder="Informações adicionais..."></textarea>
         </div>
@@ -326,7 +537,9 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-new-user')">Cancelar</button>
-      <button id="btn-create-user" class="btn btn-primary" onclick="submitNewUser()">Criar Usuário</button>
+      <button id="btn-create-user" class="btn btn-primary" onclick="submitNewUser()">
+        <svg><use href="#ic-plus"/></svg> Criar Usuário
+      </button>
     </div>
   </div>
 </div>
@@ -336,13 +549,13 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <span id="edit-user-title" class="modal-title">Editar Usuário</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
       <input id="edit-username-val" type="hidden">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Nova senha (opcional)</label>
+          <label class="form-label">Nova senha <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
           <input id="edit-password" class="form-input" type="password" placeholder="Deixe em branco para não alterar" autocomplete="new-password">
         </div>
         <div class="form-group">
@@ -374,14 +587,16 @@
         <label class="form-label">Expira em</label>
         <input id="edit-expires" class="form-input" type="datetime-local">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Observações</label>
         <textarea id="edit-notes" class="form-textarea"></textarea>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-user')">Cancelar</button>
-      <button id="btn-save-edit" class="btn btn-primary" onclick="submitEditUser()">Salvar</button>
+      <button id="btn-save-edit" class="btn btn-primary" onclick="submitEditUser()">
+        <svg><use href="#ic-check"/></svg> Salvar
+      </button>
     </div>
   </div>
 </div>
@@ -391,7 +606,7 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <span id="view-user-title" class="modal-title">Detalhes do Usuário</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div id="view-user-body" class="modal-body"></div>
     <div class="modal-footer">
@@ -405,16 +620,18 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Nova VLAN / Grupo</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="new-group-error" class="login-error" style="display:none"></div>
+      <div id="new-group-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="new-group-error-msg"></span>
+      </div>
       <form id="form-new-group" onsubmit="e=>e.preventDefault()">
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Nome do grupo <span class="form-required">*</span></label>
             <input id="ng-groupname" class="form-input" type="text" placeholder="funcionarios">
-            <div class="form-hint">Sem espaços — use underline</div>
+            <div class="form-hint">Sem espaços — use underline ou hífen</div>
           </div>
           <div class="form-group">
             <label class="form-label">VLAN ID <span class="form-required">*</span></label>
@@ -425,18 +642,20 @@
           <label class="form-label">Descrição</label>
           <input id="ng-desc" class="form-input" type="text" placeholder="Rede para funcionários da empresa">
         </div>
-        <div class="form-group">
-          <label class="form-label">Cor (identificação visual)</label>
-          <div style="display:flex;align-items:center;gap:10px">
-            <input id="ng-color" class="form-input" type="color" value="#6366f1" style="width:60px;padding:4px;height:38px;cursor:pointer">
-            <span style="font-size:12px;color:var(--text-muted)">Usada para identificação no painel</span>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Cor de identificação</label>
+          <div style="display:flex;align-items:center;gap:12px">
+            <input id="ng-color" class="form-input" type="color" value="#6366f1" style="width:52px;padding:4px;height:38px;cursor:pointer;flex-shrink:0">
+            <span style="font-size:12px;color:var(--text-muted)">Cor exibida nos cards e badges do painel</span>
           </div>
         </div>
       </form>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-new-group')">Cancelar</button>
-      <button id="btn-create-group" class="btn btn-primary" onclick="submitNewGroup()">Criar Grupo</button>
+      <button id="btn-create-group" class="btn btn-primary" onclick="submitNewGroup()">
+        <svg><use href="#ic-plus"/></svg> Criar Grupo
+      </button>
     </div>
   </div>
 </div>
@@ -446,10 +665,12 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Editar Grupo / VLAN</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="edit-group-error" class="login-error" style="display:none"></div>
+      <div id="edit-group-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="edit-group-error-msg"></span>
+      </div>
       <input id="eg-orig-name" type="hidden">
       <div class="form-group">
         <label class="form-label">Nome do grupo</label>
@@ -469,19 +690,21 @@
         <label class="form-label">Descrição</label>
         <input id="eg-desc" class="form-input" type="text">
       </div>
-      <div class="form-group">
-        <label class="form-label" style="display:flex;align-items:center;gap:10px">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <label class="toggle">
             <input id="eg-active" type="checkbox">
             <span class="toggle-slider"></span>
           </label>
-          Grupo ativo
+          <span>Grupo ativo</span>
         </label>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-group')">Cancelar</button>
-      <button id="btn-save-group" class="btn btn-primary" onclick="submitEditGroup()">Salvar</button>
+      <button id="btn-save-group" class="btn btn-primary" onclick="submitEditGroup()">
+        <svg><use href="#ic-check"/></svg> Salvar
+      </button>
     </div>
   </div>
 </div>
@@ -491,10 +714,12 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Novo Dispositivo NAS</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="new-nas-error" class="login-error" style="display:none"></div>
+      <div id="new-nas-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="new-nas-error-msg"></span>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">IP / Hostname <span class="form-required">*</span></label>
@@ -509,7 +734,7 @@
         <div class="form-group">
           <label class="form-label">Tipo</label>
           <select id="nas-type" class="form-select">
-            <option value="other">other</option>
+            <option value="other">Other</option>
             <option value="cisco">Cisco</option>
             <option value="computone">Computone</option>
             <option value="livingston">Livingston</option>
@@ -524,23 +749,25 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Porta (opcional)</label>
+          <label class="form-label">Porta <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
           <input id="nas-ports" class="form-input" type="number" placeholder="1812">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Secret <span class="form-required">*</span></label>
+        <label class="form-label">Shared Secret <span class="form-required">*</span></label>
         <input id="nas-secret" class="form-input" type="text" placeholder="shared_secret_aqui" autocomplete="off">
         <div class="form-hint">Deve ser igual ao configurado no Access Point / Switch</div>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Descrição</label>
         <input id="nas-desc" class="form-input" type="text" placeholder="AP do corredor leste, 2º andar">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-new-nas')">Cancelar</button>
-      <button id="btn-create-nas" class="btn btn-primary" onclick="submitNewNas()">Cadastrar</button>
+      <button id="btn-create-nas" class="btn btn-primary" onclick="submitNewNas()">
+        <svg><use href="#ic-plus"/></svg> Cadastrar
+      </button>
     </div>
   </div>
 </div>
@@ -550,10 +777,12 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Editar Dispositivo NAS</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="edit-nas-error" class="login-error" style="display:none"></div>
+      <div id="edit-nas-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="edit-nas-error-msg"></span>
+      </div>
       <input id="edit-nas-id" type="hidden">
       <div class="form-row">
         <div class="form-group">
@@ -569,11 +798,13 @@
         <div class="form-group">
           <label class="form-label">Tipo</label>
           <select id="edit-nas-type" class="form-select">
-            <option value="other">other</option>
+            <option value="other">Other</option>
             <option value="cisco">Cisco</option>
             <option value="computone">Computone</option>
             <option value="livingston">Livingston</option>
-            <option value="other">Other</option>
+            <option value="max40xx">Max40xx</option>
+            <option value="multitech">Multitech</option>
+            <option value="netserver">Netserver</option>
           </select>
         </div>
         <div class="form-group">
@@ -582,17 +813,19 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Secret</label>
+        <label class="form-label">Shared Secret</label>
         <input id="edit-nas-secret" class="form-input" type="text" autocomplete="off">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Descrição</label>
         <input id="edit-nas-desc" class="form-input" type="text">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-nas')">Cancelar</button>
-      <button id="btn-save-nas" class="btn btn-primary" onclick="submitEditNas()">Salvar</button>
+      <button id="btn-save-nas" class="btn btn-primary" onclick="submitEditNas()">
+        <svg><use href="#ic-check"/></svg> Salvar
+      </button>
     </div>
   </div>
 </div>
@@ -602,10 +835,12 @@
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Novo Administrador</span>
-      <button class="modal-close">✕</button>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
     </div>
     <div class="modal-body">
-      <div id="new-admin-error" class="login-error" style="display:none"></div>
+      <div id="new-admin-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="new-admin-error-msg"></span>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Usuário <span class="form-required">*</span></label>
@@ -626,7 +861,7 @@
           <input id="new-admin-email" class="form-input" type="email" placeholder="joao@empresa.com">
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label">Nível de acesso</label>
         <select id="new-admin-role" class="form-select">
           <option value="admin">Admin — pode gerenciar usuários e grupos</option>
@@ -637,7 +872,9 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-new-admin')">Cancelar</button>
-      <button id="btn-create-admin" class="btn btn-primary" onclick="submitNewAdmin()">Criar Admin</button>
+      <button id="btn-create-admin" class="btn btn-primary" onclick="submitNewAdmin()">
+        <svg><use href="#ic-plus"/></svg> Criar Admin
+      </button>
     </div>
   </div>
 </div>
@@ -653,7 +890,6 @@
 <script src="js/nas.js"></script>
 <script src="js/settings.js"></script>
 <script>
-  // Initialize filters after DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initUserFilters, 100);
   });
