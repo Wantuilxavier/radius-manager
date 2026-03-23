@@ -6,6 +6,7 @@
   <title>Radius Manager</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366F1' stroke-width='2'%3E%3Cpath d='M5 12.55a11 11 0 0 1 14.08 0'/%3E%3Cpath d='M1.42 9a16 16 0 0 1 21.16 0'/%3E%3Cpath d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Ccircle cx='12' cy='20' r='1' fill='%236366F1'/%3E%3C/svg%3E">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -142,6 +143,22 @@
   <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
   </symbol>
+  <!-- Menu / Hamburger -->
+  <symbol id="ic-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </symbol>
+  <!-- Trending Up -->
+  <symbol id="ic-trending-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+  </symbol>
+  <!-- Trending Down -->
+  <symbol id="ic-trending-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>
+  </symbol>
+  <!-- Zap / Signal -->
+  <symbol id="ic-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </symbol>
 </svg>
 
 <!-- ══════════════════════ LOGIN ══════════════════════════════ -->
@@ -184,6 +201,9 @@
     <p class="login-footer">Acesso restrito a administradores de rede</p>
   </div>
 </div>
+
+<!-- ══════════════════════ SIDEBAR OVERLAY (mobile) ═════════ -->
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
 
 <!-- ══════════════════════ APP ════════════════════════════════ -->
 <div id="app">
@@ -260,6 +280,13 @@
     <!-- Topbar -->
     <div class="topbar">
       <div class="topbar-left">
+        <button class="menu-toggle-btn" id="topbar-menu-btn" title="Menu">
+          <svg><use href="#ic-menu"/></svg>
+        </button>
+        <div class="topbar-breadcrumb">
+          <svg style="width:14px;height:14px;color:var(--accent)"><use href="#ic-wifi"/></svg>
+          <span style="color:var(--border-2)">/</span>
+        </div>
         <span class="topbar-page" id="topbar-page">Dashboard</span>
       </div>
       <div class="topbar-right">

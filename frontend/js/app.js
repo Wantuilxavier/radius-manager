@@ -43,6 +43,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Logout
   document.getElementById('btn-logout').addEventListener('click', logout);
+
+  // ── Mobile sidebar toggle ──────────────────────────────────
+  const menuBtn      = document.getElementById('topbar-menu-btn');
+  const sidebarEl    = document.querySelector('.sidebar');
+  const overlayEl    = document.getElementById('sidebar-overlay');
+
+  function openMobileSidebar() {
+    sidebarEl?.classList.add('sidebar-open');
+    overlayEl?.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMobileSidebar() {
+    sidebarEl?.classList.remove('sidebar-open');
+    overlayEl?.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  menuBtn?.addEventListener('click', () => {
+    sidebarEl?.classList.contains('sidebar-open') ? closeMobileSidebar() : openMobileSidebar();
+  });
+  overlayEl?.addEventListener('click', closeMobileSidebar);
+
+  // Close sidebar when navigating on mobile
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.addEventListener('click', closeMobileSidebar);
+  });
 });
 
 // ─── Theme ────────────────────────────────────────────────────
@@ -167,17 +193,11 @@ async function loadDashboard() {
     const d = await api.get('/dashboard/stats');
     const t = d.totals;
 
-    const maxSessions = Math.max(...(d.daily_activity.map(x => x.sessions)), 1);
-
-    const barChart = d.daily_activity.map(x => {
-      const h = Math.max(Math.round((x.sessions / maxSessions) * 100), 4);
-      const date = new Date(x.day).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' });
-      return `<div class="mini-bar" style="height:${h}%" title="${date}: ${x.sessions} sessões"></div>`;
-    }).join('');
-
-    const chartLabels = d.daily_activity.map(x =>
-      `<span>${new Date(x.day).toLocaleDateString('pt-BR',{weekday:'short'})}</span>`
-    ).join('');
+    // Dados para Chart.js
+    const activityLabels = d.daily_activity.map(x =>
+      new Date(x.day).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })
+    );
+    const activityData = d.daily_activity.map(x => x.sessions);
 
     const vlanRows = d.users_by_group.map(g => {
       const pct = g.total > 0 ? Math.round(g.active / g.total * 100) : 0;
@@ -280,13 +300,68 @@ async function loadDashboard() {
             </div>
           </div>
           <div class="card-body">
-            <div class="mini-bar-chart">
-              ${barChart || '<span style="color:var(--text-muted);font-size:12px;align-self:center">Sem dados de sessões</span>'}
+            <div class="chartjs-wrap">
+              <canvas id="sessions-chart"></canvas>
             </div>
-            <div class="chart-labels">${chartLabels}</div>
           </div>
         </div>
       </div>`;
+
+    // ── Chart.js — Gráfico de barras de sessões ──────────────
+    const canvas = document.getElementById('sessions-chart');
+    if (canvas && typeof Chart !== 'undefined') {
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      const gridColor  = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
+      const tickColor  = isDark ? '#4A5568' : '#94A3B8';
+      const barColor   = isDark ? 'rgba(99,102,241,.55)' : 'rgba(99,102,241,.45)';
+      const borderColor = '#6366F1';
+
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: activityLabels,
+          datasets: [{
+            data: activityData,
+            backgroundColor: barColor,
+            borderColor: borderColor,
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false,
+            hoverBackgroundColor: 'rgba(99,102,241,.8)',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1C2230' : '#fff',
+              borderColor: isDark ? 'rgba(255,255,255,.1)' : '#E2E8F0',
+              borderWidth: 1,
+              titleColor: isDark ? '#E6EDF3' : '#0F172A',
+              bodyColor: isDark ? '#8B949E' : '#475569',
+              padding: 10,
+              callbacks: { label: ctx => ` ${ctx.raw} sessões` }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: tickColor, font: { size: 11, family: "'JetBrains Mono', monospace" } }
+            },
+            y: {
+              grid: { color: gridColor, drawBorder: false },
+              border: { display: false, dash: [4, 4] },
+              ticks: { color: tickColor, font: { size: 11 }, stepSize: 1, precision: 0 },
+              beginAtZero: true
+            }
+          },
+          animation: { duration: 600, easing: 'easeOutQuart' }
+        }
+      });
+    }
 
   } catch (err) {
     el.innerHTML = `
