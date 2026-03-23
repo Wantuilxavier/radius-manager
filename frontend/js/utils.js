@@ -53,7 +53,8 @@ function closeModal(id) {
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
-  if (e.target.classList.contains('modal-close')) closeModal(e.target.closest('.modal-overlay').id);
+  const closeBtn = e.target.closest('.modal-close');
+  if (closeBtn) closeModal(closeBtn.closest('.modal-overlay').id);
 });
 
 // ─── Auth helpers ─────────────────────────────────────────────
@@ -97,6 +98,7 @@ function showApp() {
     document.getElementById('sidebar-role').textContent = u.role;
     document.getElementById('sidebar-avatar').textContent = (u.full_name || u.username).charAt(0).toUpperCase();
   }
+  if (typeof _applyNavPermissions === 'function') _applyNavPermissions();
 }
 
 // ─── Pagination helper ────────────────────────────────────────

@@ -101,6 +101,38 @@
   --topbar-bg:      rgba(240,244,248,.85);
 }
 
+/* ── Sidebar sempre escura (mesmo no tema claro) ── */
+[data-theme="light"] .sidebar {
+  --sidebar-bg:     #161B22;
+  --sidebar-border: rgba(255,255,255,.06);
+  --bg-hover:       rgba(255,255,255,.05);
+  --accent-dim:     rgba(99,102,241,.16);
+  --text-primary:   #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-muted:     #4A5568;
+  --border:         rgba(255,255,255,.08);
+  --border-2:       rgba(255,255,255,.14);
+}
+
+/* ── Login sempre no modo claro ── */
+#login-screen,
+#login-screen .login-card {
+  --bg-base:        #F0F4F8;
+  --bg-card:        #FFFFFF;
+  --bg-elevated:    #F8FAFC;
+  --bg-input:       #F8FAFC;
+  --bg-hover:       rgba(0,0,0,.04);
+  --border:         #E2E8F0;
+  --border-2:       #CBD5E1;
+  --text-primary:   #0F172A;
+  --text-secondary: #475569;
+  --text-muted:     #94A3B8;
+  --shadow-lg:      0 20px 56px rgba(0,0,0,.14), 0 8px 24px rgba(0,0,0,.07);
+  --shadow-glow:    0 0 28px rgba(99,102,241,.18);
+  color-scheme: light;
+}
+#login-screen { background: var(--bg-base); }
+
 /* ═══════════════════════════════════════════════════════════════
    BASE
 ═══════════════════════════════════════════════════════════════ */

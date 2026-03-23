@@ -151,6 +151,16 @@ function logout() {
 
 // ─── Navigation ───────────────────────────────────────────────
 async function navigate(page) {
+  // Redireciona para dashboard se não tiver permissão para a página
+  if (page !== 'settings' && NAV_PERMS[page]) {
+    const [res, act] = NAV_PERMS[page];
+    if (!hasPermission(res, act)) {
+      // Encontra a primeira página acessível
+      const fallback = Object.keys(NAV_PERMS).find(p => hasPermission(...NAV_PERMS[p])) || 'settings';
+      page = fallback;
+    }
+  }
+
   currentPage = page;
 
   // Update nav active states
@@ -182,6 +192,32 @@ async function navigate(page) {
 // ─── Load groups (for dropdowns) ─────────────────────────────
 async function loadGroups() {
   try { groups = await api.get('/groups'); } catch { groups = []; }
+}
+
+// ─── Aplica visibilidade dos itens do menu conforme permissões ──
+const NAV_PERMS = {
+  dashboard: ['dashboard', 'view'],
+  users:     ['users',     'view'],
+  groups:    ['groups',    'view'],
+  sessions:  ['sessions',  'view'],
+  audit:     ['audit',     'view'],
+  nas:       ['nas',       'view'],
+};
+
+function _applyNavPermissions() {
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    const page = el.dataset.page;
+    if (page === 'settings') return; // troca de senha é acessível a todos
+    const perm = NAV_PERMS[page];
+    el.style.display = (!perm || hasPermission(perm[0], perm[1])) ? '' : 'none';
+  });
+
+  // Oculta seção inteira se todos os itens estiverem escondidos
+  document.querySelectorAll('.nav-section').forEach(section => {
+    const items = section.querySelectorAll('.nav-item[data-page]');
+    const allHidden = items.length > 0 && Array.from(items).every(i => i.style.display === 'none');
+    section.style.display = allHidden ? 'none' : '';
+  });
 }
 
 // ─── Aplica visibilidade de botões conforme permissões ─────────
