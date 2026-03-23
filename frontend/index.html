@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366F1' stroke-width='2'%3E%3Cpath d='M5 12.55a11 11 0 0 1 14.08 0'/%3E%3Cpath d='M1.42 9a16 16 0 0 1 21.16 0'/%3E%3Cpath d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Ccircle cx='12' cy='20' r='1' fill='%236366F1'/%3E%3C/svg%3E">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -40,6 +42,14 @@
   <symbol id="ic-audit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
     <rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+  </symbol>
+  <!-- Departments / Building -->
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/><path d="M15 7h2"/><path d="M15 11h2"/><path d="M15 15h2"/>
+  </symbol>
+  <!-- PDF Export -->
+  <symbol id="ic-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
   </symbol>
   <!-- NAS / Server -->
   <symbol id="ic-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -244,6 +254,9 @@
       </div>
       <div class="nav-section">
         <span class="nav-label">Administração</span>
+        <div class="nav-item" data-page="departments">
+          <svg><use href="#ic-building"/></svg> Departamentos
+        </div>
         <div class="nav-item" data-page="nas">
           <svg><use href="#ic-server"/></svg> Dispositivos NAS
         </div>
@@ -322,6 +335,9 @@
           <p>Gerencie usuários de autenticação WiFi 802.1X</p>
         </div>
         <div class="page-actions">
+          <button class="btn btn-ghost" id="btn-export-pdf" onclick="openExportPdfModal()">
+            <svg><use href="#ic-download"/></svg> Exportar PDF
+          </button>
           <button class="btn btn-primary" onclick="createUser()">
             <svg><use href="#ic-plus"/></svg> Novo Usuário
           </button>
@@ -431,6 +447,24 @@
       </div>
     </div>
 
+    <!-- ── Departments ── -->
+    <div id="page-departments" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Departamentos</h1>
+          <p>Gerencie os departamentos para padronizar o cadastro de usuários</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" id="btn-new-department" onclick="openNewDeptModal()">
+            <svg><use href="#ic-plus"/></svg> Novo Departamento
+          </button>
+        </div>
+      </div>
+      <div class="page-content">
+        <div id="departments-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
     <!-- ── Settings ── -->
     <div id="page-settings" class="page" style="display:none">
       <div class="page-header">
@@ -474,6 +508,22 @@
               <button class="btn btn-primary" onclick="submitChangePassword()" style="width:100%;justify-content:center">
                 Alterar senha
               </button>
+            </div>
+          </div>
+
+          <!-- VLAN padrão para não cadastrados -->
+          <div class="card" id="default-vlan-card">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display:flex;align-items:center;gap:8px">
+                  <svg style="width:16px;height:16px;color:var(--yellow)"><use href="#ic-wifi"/></svg>
+                  VLAN padrão para não cadastrados
+                </div>
+                <div class="card-subtitle" style="margin-top:4px">Quando ativa, usuários não cadastrados recebem acesso a uma VLAN específica</div>
+              </div>
+            </div>
+            <div class="card-body" id="default-vlan-body">
+              <div class="loading-overlay"><span class="spinner"></span></div>
             </div>
           </div>
 
@@ -563,7 +613,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Departamento</label>
-            <input id="new-department" class="form-input" type="text" placeholder="TI, RH, Financeiro...">
+            <select id="new-department" class="form-select"><option value="">— Selecione —</option></select>
           </div>
         </div>
         <div class="form-group">
@@ -635,7 +685,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Departamento</label>
-          <input id="edit-department" class="form-input" type="text">
+          <select id="edit-department" class="form-select"><option value="">— Selecione —</option></select>
         </div>
       </div>
       <div class="form-group">
@@ -671,6 +721,80 @@
 </div>
 
 <!-- Modal: Novo Grupo -->
+<!-- Modal: Novo Departamento -->
+<div id="modal-new-dept" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="dept-modal-title" class="modal-title">Novo Departamento</span>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div id="dept-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="dept-error-msg"></span>
+      </div>
+      <input id="dept-id-val" type="hidden">
+      <div class="form-group">
+        <label class="form-label">Nome <span class="form-required">*</span></label>
+        <input id="dept-name" class="form-input" type="text" placeholder="Ex: Tecnologia da Informação">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Descrição</label>
+        <input id="dept-desc" class="form-input" type="text" placeholder="Descrição opcional">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-dept')">Cancelar</button>
+      <button id="btn-save-dept" class="btn btn-primary" onclick="submitDept()">
+        <svg><use href="#ic-plus"/></svg> Criar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Exportar PDF -->
+<div id="modal-export-pdf" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Exportar Usuários — PDF</span>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+        O PDF será gerado com os mesmos filtros aplicados na listagem atual.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Título do relatório</label>
+        <input id="pdf-title" class="form-input" type="text" value="Relatório de Usuários WiFi">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="pdf-show-password" style="width:16px;height:16px">
+          Incluir senhas no relatório
+        </label>
+        <div class="form-hint" style="color:var(--yellow)">Apenas para entrega presencial. Não compartilhe digitalmente.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="pdf-use-password" onchange="document.getElementById('pdf-password-wrap').style.display=this.checked?'':'none'" style="width:16px;height:16px">
+          Proteger PDF com senha
+        </label>
+      </div>
+      <div id="pdf-password-wrap" style="display:none">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Senha de abertura</label>
+          <input id="pdf-password" class="form-input" type="password" placeholder="Mínimo 4 caracteres">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-export-pdf')">Cancelar</button>
+      <button id="btn-generate-pdf" class="btn btn-primary" onclick="generateUsersPdf()">
+        <svg><use href="#ic-download"/></svg> Gerar PDF
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-new-group" class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
@@ -964,6 +1088,8 @@
 <script src="js/groups-sessions.js"></script>
 <script src="js/nas.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/departments.js"></script>
+<script src="js/export-pdf.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initUserFilters, 100);

@@ -4,13 +4,14 @@ let groups = [];
 
 // ─── Page meta ────────────────────────────────────────────────
 const PAGE_META = {
-  dashboard: 'Dashboard',
-  users:     'Usuários',
-  groups:    'Grupos / VLANs',
-  sessions:  'Sessões Ativas',
-  audit:     'Log de Auditoria',
-  nas:       'Dispositivos NAS',
-  settings:  'Configurações',
+  dashboard:   'Dashboard',
+  users:       'Usuários',
+  groups:      'Grupos / VLANs',
+  sessions:    'Sessões Ativas',
+  audit:       'Log de Auditoria',
+  nas:         'Dispositivos NAS',
+  departments: 'Departamentos',
+  settings:    'Configurações',
 };
 
 // ─── Init ──────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ async function handleLogin(e) {
     savePermissions(data.permissions);
     showApp();
     await loadGroups();
+    await loadDepartmentOptions();
     navigate('dashboard');
   } catch (err) {
     if (errMsg) errMsg.textContent = err.message || 'Erro ao fazer login';
@@ -180,13 +182,14 @@ async function navigate(page) {
   // Mostra/esconde botões de ação das páginas conforme permissão
   _applyPagePermissions(page);
 
-  if (page === 'dashboard')  loadDashboard();
-  if (page === 'users')      loadUsers();
-  if (page === 'groups')     loadGroupsPage();
-  if (page === 'sessions')   loadSessions();
-  if (page === 'audit')      loadAudit();
-  if (page === 'nas')        loadNas();
-  if (page === 'settings')   loadSettings();
+  if (page === 'dashboard')   loadDashboard();
+  if (page === 'users')       loadUsers();
+  if (page === 'groups')      loadGroupsPage();
+  if (page === 'sessions')    loadSessions();
+  if (page === 'audit')       loadAudit();
+  if (page === 'nas')         loadNas();
+  if (page === 'departments') loadDepartmentsPage();
+  if (page === 'settings')    loadSettings();
 }
 
 // ─── Load groups (for dropdowns) ─────────────────────────────
@@ -196,12 +199,13 @@ async function loadGroups() {
 
 // ─── Aplica visibilidade dos itens do menu conforme permissões ──
 const NAV_PERMS = {
-  dashboard: ['dashboard', 'view'],
-  users:     ['users',     'view'],
-  groups:    ['groups',    'view'],
-  sessions:  ['sessions',  'view'],
-  audit:     ['audit',     'view'],
-  nas:       ['nas',       'view'],
+  dashboard:   ['dashboard',   'view'],
+  users:       ['users',       'view'],
+  groups:      ['groups',      'view'],
+  sessions:    ['sessions',    'view'],
+  audit:       ['audit',       'view'],
+  nas:         ['nas',         'view'],
+  departments: ['departments', 'view'],
 };
 
 function _applyNavPermissions() {
@@ -233,6 +237,14 @@ function _applyPagePermissions(page) {
   // Botão "Novo NAS"
   const btnNewNas = document.getElementById('btn-new-nas');
   if (btnNewNas) btnNewNas.style.display = hasPermission('nas', 'create') ? '' : 'none';
+
+  // Botão "Novo Departamento"
+  const btnNewDept = document.getElementById('btn-new-department');
+  if (btnNewDept) btnNewDept.style.display = hasPermission('departments', 'create') ? '' : 'none';
+
+  // Botão "Exportar PDF" (visível para quem pode visualizar usuários)
+  const btnExportPdf = document.getElementById('btn-export-pdf');
+  if (btnExportPdf) btnExportPdf.style.display = hasPermission('users', 'view') ? '' : 'none';
 
   // Botão "Novo Admin" (somente superadmin vê settings)
   const btnNewAdmin = document.querySelector('#page-settings .btn-primary[onclick="openNewAdminModal()"]');

@@ -222,11 +222,17 @@ async function editUser(username) {
     document.getElementById('edit-fullname').value   = u.full_name || '';
     document.getElementById('edit-email').value      = u.email || '';
     document.getElementById('edit-phone').value      = u.phone || '';
-    document.getElementById('edit-department').value = u.department || '';
     document.getElementById('edit-notes').value      = u.notes || '';
     document.getElementById('edit-expires').value    = u.expires_at ? u.expires_at.slice(0,16) : '';
     document.getElementById('edit-password').value   = '';
     document.getElementById('edit-simultaneous').value = u.simultaneous_connections != null ? String(u.simultaneous_connections) : '';
+    // Departamento: select se houver lista, senão input texto
+    const deptEl = document.getElementById('edit-department');
+    if (deptEl.tagName === 'SELECT') {
+      deptEl.innerHTML = departmentOptions(u.department || '');
+    } else {
+      deptEl.value = u.department || '';
+    }
     const gs = document.getElementById('edit-group');
     gs.innerHTML = groupOptions(u.groupname);
     openModal('modal-edit-user');
@@ -280,7 +286,15 @@ async function deleteUser(username) {
 async function createUser() {
   const gs = document.getElementById('new-group');
   gs.innerHTML = groupOptions('');
+  // Departamento: popula select se disponível
+  const deptEl = document.getElementById('new-department');
+  if (deptEl && deptEl.tagName === 'SELECT') {
+    deptEl.innerHTML = departmentOptions('');
+  }
   document.getElementById('form-new-user').reset();
+  // reset() apaga os selects — repopula
+  if (gs) gs.innerHTML = groupOptions('');
+  if (deptEl && deptEl.tagName === 'SELECT') deptEl.innerHTML = departmentOptions('');
   document.getElementById('new-user-error').style.display = 'none';
   openModal('modal-new-user');
 }

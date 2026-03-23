@@ -7,6 +7,7 @@ async function loadGroupsPage() {
     el.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
         ${groups.map(g => renderGroupCard(g)).join('')}
+        ${hasPermission('groups', 'create') ? `
         <div class="group-card group-card-add" onclick="openNewGroupModal()">
           <div>
             <div style="width:40px;height:40px;border-radius:var(--radius-sm);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;margin-bottom:12px;transition:border-color var(--transition),background var(--transition)">
@@ -15,7 +16,7 @@ async function loadGroupsPage() {
             <div style="font-size:14px;font-weight:600;color:var(--text-secondary)">Nova VLAN / Grupo</div>
             <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Adicionar novo grupo</div>
           </div>
-        </div>
+        </div>` : ''}
       </div>`;
   } catch (err) {
     el.innerHTML = `<div class="empty-state"><span class="icon">⚠️</span><p>${err.message}</p></div>`;

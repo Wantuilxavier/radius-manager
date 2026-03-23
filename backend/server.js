@@ -40,12 +40,13 @@ app.use('/api', apiLimiter);
 
 // ─── API Routes ───────────────────────────────────────────────
 app.use('/api/auth/login', loginLimiter);
-app.use('/api/auth',      require('./routes/auth'));
-app.use('/api/users',     require('./routes/users'));
-app.use('/api/groups',    require('./routes/groups'));
-app.use('/api/nas',       require('./routes/nas'));
-app.use('/api/settings',  require('./routes/settings'));
-app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/auth',        require('./routes/auth'));
+app.use('/api/users',       require('./routes/users'));
+app.use('/api/groups',      require('./routes/groups'));
+app.use('/api/nas',         require('./routes/nas'));
+app.use('/api/departments', require('./routes/departments'));
+app.use('/api/settings',    require('./routes/settings'));
+app.use('/api/dashboard',   require('./routes/dashboard'));
 
 // ─── Serve Frontend (produção) ────────────────────────────────
 app.use(express.static(path.join(__dirname, '..', 'frontend')));

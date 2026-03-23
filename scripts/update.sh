@@ -164,7 +164,48 @@ fi
 step "Aplicando migrations de banco de dados"
 run_pending_migrations
 
-# ─── 6. Atualiza dependências se package.json mudou ──────────
+# ─── 6. Atualiza arquivos de configuração do FreeRADIUS ──────
+step "Atualizando configurações do FreeRADIUS"
+
+FREERADIUS_SQL_CONF="/etc/freeradius/3.0/mods-available/sql"
+FREERADIUS_QUERIES_CONF="/etc/freeradius/3.0/mods-config/sql/main/mysql/queries.conf"
+FREERADIUS_SITES_DEFAULT="/etc/freeradius/3.0/sites-available/default"
+
+FREERADIUS_UPDATED=0
+
+# Verifica se o queries.conf mudou em relação ao que está instalado
+if [ -f "${INSTALL_DIR}/freeradius/queries.conf" ]; then
+  if ! cmp -s "${INSTALL_DIR}/freeradius/queries.conf" "${FREERADIUS_QUERIES_CONF}" 2>/dev/null; then
+    info "Atualizando queries.conf do FreeRADIUS..."
+    cp "${INSTALL_DIR}/freeradius/queries.conf" "${FREERADIUS_QUERIES_CONF}"
+    chown freerad:freerad "${FREERADIUS_QUERIES_CONF}"
+    chmod 640 "${FREERADIUS_QUERIES_CONF}"
+    success "queries.conf atualizado"
+    FREERADIUS_UPDATED=1
+  else
+    info "queries.conf já está atualizado"
+  fi
+fi
+
+# Verifica se o sites-default mudou
+if [ -f "${INSTALL_DIR}/freeradius/sites-default" ]; then
+  if ! cmp -s "${INSTALL_DIR}/freeradius/sites-default" "${FREERADIUS_SITES_DEFAULT}" 2>/dev/null; then
+    info "Atualizando sites-available/default do FreeRADIUS..."
+    cp "${INSTALL_DIR}/freeradius/sites-default" "${FREERADIUS_SITES_DEFAULT}"
+    success "sites-available/default atualizado"
+    FREERADIUS_UPDATED=1
+  else
+    info "sites-available/default já está atualizado"
+  fi
+fi
+
+if [ "${FREERADIUS_UPDATED}" -eq 1 ]; then
+  info "Reiniciando FreeRADIUS para aplicar configurações..."
+  systemctl restart freeradius
+  success "FreeRADIUS reiniciado"
+fi
+
+# ─── 7. Atualiza dependências se package.json mudou ──────────
 step "Verificando dependências Node.js"
 cd "${INSTALL_DIR}/backend"
 
@@ -176,7 +217,7 @@ else
   info "Sem mudanças em dependências"
 fi
 
-# ─── 7. Reinicia a aplicação ─────────────────────────────────
+# ─── 8. Reinicia a aplicação ─────────────────────────────────
 step "Reiniciando aplicação"
 export PATH="/root/.npm-global/bin:${PATH}"
 pm2 restart radius-manager

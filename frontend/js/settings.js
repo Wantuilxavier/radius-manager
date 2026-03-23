@@ -1,6 +1,9 @@
 // ─── SETTINGS PAGE ────────────────────────────────────────────
 async function loadSettings() {
-  await loadAdminsList();
+  await Promise.all([
+    loadAdminsList(),
+    loadDefaultVlanSection(),
+  ]);
 }
 
 // ─── Change Password ──────────────────────────────────────────
@@ -234,12 +237,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Labels amigáveis
 const RESOURCE_LABELS = {
-  dashboard: 'Dashboard',
-  users:     'Usuários',
-  groups:    'Grupos / VLANs',
-  nas:       'Dispositivos NAS',
-  sessions:  'Sessões Ativas',
-  audit:     'Log de Auditoria',
+  dashboard:   'Dashboard',
+  users:       'Usuários',
+  groups:      'Grupos / VLANs',
+  nas:         'Dispositivos NAS',
+  sessions:    'Sessões Ativas',
+  audit:       'Log de Auditoria',
+  departments: 'Departamentos',
 };
 const ACTION_LABELS = {
   view:   'Visualizar',
@@ -351,4 +355,88 @@ async function savePermissions_modal() {
   } finally {
     btn.disabled = false; btn.textContent = 'Salvar Permissões';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VLAN PADRÃO PARA USUÁRIOS NÃO CADASTRADOS
+// ═══════════════════════════════════════════════════════════════
+
+async function loadDefaultVlanSection() {
+  const el  = document.getElementById('default-vlan-body');
+  const u   = currentUser();
+  const card = document.getElementById('default-vlan-card');
+
+  if (!u || u.role !== 'superadmin') {
+    if (card) card.style.display = 'none';
+    return;
+  }
+
+  el.innerHTML = '<div class="loading-overlay"><span class="spinner"></span></div>';
+
+  try {
+    const cfg = await api.get('/settings/default-vlan');
+    _renderDefaultVlan(el, cfg);
+  } catch (err) {
+    el.innerHTML = `<p style="color:var(--red);font-size:13px">${err.message}</p>`;
+  }
+}
+
+function _renderDefaultVlan(el, cfg) {
+  const activeGroups = typeof groups !== 'undefined'
+    ? groups.filter(g => g.active)
+    : [];
+
+  const groupOptions = activeGroups
+    .map(g => `<option value="${g.groupname}" ${cfg.group === g.groupname ? 'selected' : ''}>${g.groupname} — VLAN ${g.vlan_id}</option>`)
+    .join('');
+
+  el.innerHTML = `
+    <div id="default-vlan-alert" class="${cfg.enabled ? 'alert-error' : ''}" style="display:${cfg.enabled ? 'flex' : 'none'};margin-bottom:16px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--yellow);gap:10px;align-items:flex-start">
+      <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px"><use href="#ic-alert"/></svg>
+      <span><strong>Atenção:</strong> Com esta política ativa, dispositivos <strong>não cadastrados</strong> poderão autenticar e receber acesso à rede. Use apenas em redes isoladas ou de visitantes.</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <label class="form-label" style="margin:0;white-space:nowrap">Grupo padrão</label>
+        <select id="default-vlan-group" class="form-select" style="width:220px" ${!cfg.enabled ? '' : ''}>
+          <option value="">— Selecione —</option>
+          ${groupOptions}
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:13px;color:var(--text-secondary)">
+          Status: <strong style="color:${cfg.enabled ? 'var(--yellow)' : 'var(--text-muted)'}">${cfg.enabled ? 'Ativo — não cadastrados são aceitos' : 'Inativo — somente usuários cadastrados'}</strong>
+        </span>
+        <button class="btn ${cfg.enabled ? 'btn-danger' : 'btn-primary'} btn-sm" onclick="toggleDefaultVlan(${cfg.enabled})">
+          ${cfg.enabled ? 'Desativar' : 'Ativar política'}
+        </button>
+      </div>
+    </div>`;
+}
+
+async function toggleDefaultVlan(currentEnabled) {
+  const groupSel = document.getElementById('default-vlan-group');
+  const group    = groupSel?.value;
+  const enabling = !currentEnabled;
+
+  if (enabling && !group) {
+    toast('Selecione um grupo/VLAN antes de ativar', 'error');
+    groupSel?.focus();
+    return;
+  }
+
+  const confirmMsg = enabling
+    ? `Ativar VLAN padrão para grupo "${group}"?\n\nUsuários NÃO cadastrados poderão autenticar. Confirmar?`
+    : 'Desativar VLAN padrão? Apenas usuários cadastrados poderão autenticar.';
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const result = await api.put('/settings/default-vlan', {
+      enabled: enabling,
+      group: enabling ? group : null,
+    });
+    toast(result.message, enabling ? 'info' : 'success');
+    loadDefaultVlanSection();
+  } catch (err) { toast(err.message, 'error'); }
 }

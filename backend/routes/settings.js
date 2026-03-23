@@ -6,43 +6,49 @@ const { authMiddleware, requireSuperAdmin } = require('../middleware/auth');
 router.use(authMiddleware);
 
 // ─── Recursos e ações disponíveis ────────────────────────────
-const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit'];
+const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit', 'departments'];
 const ACTIONS   = {
-  dashboard: ['view'],
-  users:     ['view', 'create', 'edit', 'delete', 'toggle'],
-  groups:    ['view', 'create', 'edit', 'delete'],
-  nas:       ['view', 'create', 'edit', 'delete'],
-  sessions:  ['view'],
-  audit:     ['view'],
+  dashboard:   ['view'],
+  users:       ['view', 'create', 'edit', 'delete', 'toggle'],
+  groups:      ['view', 'create', 'edit', 'delete'],
+  nas:         ['view', 'create', 'edit', 'delete'],
+  sessions:    ['view'],
+  audit:       ['view'],
+  departments: ['view', 'create', 'edit', 'delete'],
 };
 
 // Permissões padrão por role (aplicadas ao criar novo admin)
 const DEFAULT_PERMISSIONS = {
   admin: [
-    { resource: 'dashboard', action: 'view'   },
-    { resource: 'users',     action: 'view'   },
-    { resource: 'users',     action: 'create' },
-    { resource: 'users',     action: 'edit'   },
-    { resource: 'users',     action: 'delete' },
-    { resource: 'users',     action: 'toggle' },
-    { resource: 'groups',    action: 'view'   },
-    { resource: 'groups',    action: 'create' },
-    { resource: 'groups',    action: 'edit'   },
-    { resource: 'groups',    action: 'delete' },
-    { resource: 'nas',       action: 'view'   },
-    { resource: 'nas',       action: 'create' },
-    { resource: 'nas',       action: 'edit'   },
-    { resource: 'nas',       action: 'delete' },
-    { resource: 'sessions',  action: 'view'   },
-    { resource: 'audit',     action: 'view'   },
+    { resource: 'dashboard',   action: 'view'   },
+    { resource: 'users',       action: 'view'   },
+    { resource: 'users',       action: 'create' },
+    { resource: 'users',       action: 'edit'   },
+    { resource: 'users',       action: 'delete' },
+    { resource: 'users',       action: 'toggle' },
+    { resource: 'groups',      action: 'view'   },
+    { resource: 'groups',      action: 'create' },
+    { resource: 'groups',      action: 'edit'   },
+    { resource: 'groups',      action: 'delete' },
+    { resource: 'nas',         action: 'view'   },
+    { resource: 'nas',         action: 'create' },
+    { resource: 'nas',         action: 'edit'   },
+    { resource: 'nas',         action: 'delete' },
+    { resource: 'sessions',    action: 'view'   },
+    { resource: 'audit',       action: 'view'   },
+    { resource: 'departments', action: 'view'   },
+    { resource: 'departments', action: 'create' },
+    { resource: 'departments', action: 'edit'   },
+    { resource: 'departments', action: 'delete' },
   ],
   viewer: [
-    { resource: 'dashboard', action: 'view' },
-    { resource: 'users',     action: 'view' },
-    { resource: 'groups',    action: 'view' },
-    { resource: 'nas',       action: 'view' },
-    { resource: 'sessions',  action: 'view' },
-    { resource: 'audit',     action: 'view' },
+    { resource: 'dashboard',   action: 'view' },
+    { resource: 'users',       action: 'view' },
+    { resource: 'groups',      action: 'view' },
+    { resource: 'nas',         action: 'view' },
+    { resource: 'sessions',    action: 'view' },
+    { resource: 'audit',       action: 'view' },
+    { resource: 'departments', action: 'view' },
   ],
 };
 
@@ -215,9 +221,126 @@ router.put('/admins/:id/permissions', requireSuperAdmin, async (req, res) => {
 });
 
 // ─── GET /api/settings/resources ─────────────────────────────
-// Retorna o mapa de recursos/ações disponíveis (para o frontend)
 router.get('/resources', async (req, res) => {
   res.json({ resources: RESOURCES, actions: ACTIONS });
+});
+
+// ─── GET /api/settings/default-vlan ──────────────────────────
+// Retorna a configuração atual de VLAN padrão para usuários não cadastrados
+router.get('/default-vlan', requireSuperAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT `key`, `value` FROM system_settings WHERE `key` IN ('default_vlan_enabled','default_vlan_group')"
+    );
+    const settings = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    res.json({
+      enabled: settings['default_vlan_enabled'] === '1',
+      group:   settings['default_vlan_group'] || null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao buscar configuração de VLAN padrão' });
+  }
+});
+
+// ─── PUT /api/settings/default-vlan ──────────────────────────
+// Ativa/desativa VLAN padrão e sincroniza entradas DEFAULT no FreeRADIUS
+router.put('/default-vlan', requireSuperAdmin, async (req, res) => {
+  const { enabled, group } = req.body;
+
+  if (enabled && !group)
+    return res.status(400).json({ error: 'Selecione um grupo/VLAN para a política padrão' });
+
+  if (enabled) {
+    const [[grp]] = await pool.query(
+      'SELECT groupname FROM vlan_profiles WHERE groupname = ? AND active = 1', [group]
+    );
+    if (!grp)
+      return res.status(400).json({ error: 'Grupo não encontrado ou inativo' });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Persiste configuração
+    await conn.query(
+      "INSERT INTO system_settings (`key`,`value`) VALUES ('default_vlan_enabled',?) ON DUPLICATE KEY UPDATE `value`=?",
+      [enabled ? '1' : '0', enabled ? '1' : '0']
+    );
+    await conn.query(
+      "INSERT INTO system_settings (`key`,`value`) VALUES ('default_vlan_group',?) ON DUPLICATE KEY UPDATE `value`=?",
+      [group || null, group || null]
+    );
+
+    // Remove entradas DEFAULT anteriores do FreeRADIUS
+    await conn.query("DELETE FROM radcheck WHERE username = 'DEFAULT'");
+    await conn.query("DELETE FROM radusergroup WHERE username = 'DEFAULT'");
+
+    // Se habilitado, insere novas entradas DEFAULT
+    if (enabled) {
+      await conn.query(
+        "INSERT INTO radcheck (username, attribute, op, value) VALUES ('DEFAULT', 'Auth-Type', ':=', 'Accept')"
+      );
+      await conn.query(
+        "INSERT INTO radusergroup (username, groupname, priority) VALUES ('DEFAULT', ?, 1)", [group]
+      );
+    }
+
+    await conn.commit();
+    res.json({
+      message: enabled
+        ? `VLAN padrão ativada: usuários não cadastrados entrarão no grupo "${group}"`
+        : 'VLAN padrão desativada: apenas usuários cadastrados poderão autenticar',
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao salvar configuração de VLAN padrão' });
+  } finally {
+    conn.release();
+  }
+});
+
+// ─── GET /api/users/export ────────────────────────────────────
+// Retorna todos os usuários (sem paginação) respeitando os filtros,
+// para uso exclusivo na geração do PDF no frontend.
+router.get('/users-export', async (req, res) => {
+  const { requirePermission } = require('../middleware/auth');
+  // Verificação inline de permissão (reusa o pool sem duplicar lógica)
+  const u = req.admin;
+  if (!u) return res.status(401).json({ error: 'Não autorizado' });
+
+  try {
+    const { search, group, active } = req.query;
+    let where = ['1=1'];
+    let params = [];
+
+    if (search) {
+      where.push('(up.username LIKE ? OR up.full_name LIKE ? OR up.email LIKE ? OR up.department LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    if (group)  { where.push('rug.groupname = ?'); params.push(group); }
+    if (active !== undefined && active !== '') { where.push('up.active = ?'); params.push(parseInt(active)); }
+
+    const [rows] = await pool.query(
+      `SELECT up.username, up.full_name, up.email, up.phone, up.department,
+              up.active, up.expires_at, up.simultaneous_connections,
+              up.created_at, up.created_by,
+              rug.groupname, vp.vlan_id, vp.color AS vlan_color
+       FROM user_profiles up
+       LEFT JOIN radusergroup rug ON rug.username = up.username
+       LEFT JOIN vlan_profiles vp ON vp.groupname = rug.groupname
+       WHERE ${where.join(' AND ')}
+       ORDER BY up.created_at DESC`,
+      params
+    );
+
+    res.json({ users: rows, total: rows.length, exported_at: new Date().toISOString() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao exportar usuários' });
+  }
 });
 
 module.exports = router;

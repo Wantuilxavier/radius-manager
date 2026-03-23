@@ -205,6 +205,13 @@ with open('/etc/freeradius/3.0/mods-available/sql', 'w') as f:
 # Copia sites-available/default já configurado com sql nas seções corretas
 cp "${SCRIPT_DIR}/freeradius/sites-default" /etc/freeradius/3.0/sites-available/default
 
+# Copia queries.conf customizado (suporte a usuário DEFAULT para VLAN padrão)
+info "Configurando queries SQL do FreeRADIUS (com suporte a DEFAULT)..."
+cp "${SCRIPT_DIR}/freeradius/queries.conf" \
+   /etc/freeradius/3.0/mods-config/sql/main/mysql/queries.conf
+chown freerad:freerad /etc/freeradius/3.0/mods-config/sql/main/mysql/queries.conf
+chmod 640 /etc/freeradius/3.0/mods-config/sql/main/mysql/queries.conf
+
 # Ajusta permissões (FreeRADIUS roda como freerad)
 chown freerad:freerad /etc/freeradius/3.0/mods-available/sql
 chmod 640 /etc/freeradius/3.0/mods-available/sql

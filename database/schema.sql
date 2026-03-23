@@ -208,6 +208,28 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     UNIQUE KEY username (username)
 );
 
+-- Departamentos para padronização dos usuários RADIUS
+CREATE TABLE IF NOT EXISTS departments (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name        VARCHAR(128) NOT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+    active      TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY name (name)
+);
+
+-- Configurações globais do sistema (chave/valor)
+-- default_vlan_enabled: '0' ou '1'
+-- default_vlan_group  : groupname da VLAN padrão para usuários não cadastrados
+CREATE TABLE IF NOT EXISTS system_settings (
+    `key`       VARCHAR(64) NOT NULL,
+    `value`     TEXT DEFAULT NULL,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`key`)
+);
+
 -- Log de ações administrativas
 CREATE TABLE IF NOT EXISTS audit_log (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -260,8 +282,14 @@ INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) VALUES
 INSERT IGNORE INTO nas (nasname, shortname, type, secret, description) VALUES
 ('192.168.1.1', 'AP-Principal', 'other', 'secret_radius_123', 'Access Point Principal (Unifi)');
 
+-- Valores padrão das configurações do sistema
+INSERT IGNORE INTO system_settings (`key`, `value`) VALUES
+('default_vlan_enabled', '0'),
+('default_vlan_group',   NULL);
+
 -- Marca todas as migrations como já aplicadas nesta instalação limpa
--- (o schema já as incorpora; não precisam ser re-executadas)
 INSERT IGNORE INTO schema_migrations (version) VALUES
 ('002_add_permissions'),
-('003_simultaneous_connections');
+('003_simultaneous_connections'),
+('004_add_departments'),
+('005_add_system_settings');
