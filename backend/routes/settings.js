@@ -306,13 +306,13 @@ router.put('/default-vlan', requireSuperAdmin, async (req, res) => {
 // Retorna todos os usuários (sem paginação) respeitando os filtros,
 // para uso exclusivo na geração do PDF no frontend.
 router.get('/users-export', async (req, res) => {
-  const { requirePermission } = require('../middleware/auth');
-  // Verificação inline de permissão (reusa o pool sem duplicar lógica)
   const u = req.admin;
   if (!u) return res.status(401).json({ error: 'Não autorizado' });
 
   try {
-    const { search, group, active } = req.query;
+    const { search, group, active, include_password } = req.query;
+    const withPasswords = include_password === '1';
+
     let where = ['1=1'];
     let params = [];
 
@@ -323,14 +323,21 @@ router.get('/users-export', async (req, res) => {
     if (group)  { where.push('rug.groupname = ?'); params.push(group); }
     if (active !== undefined && active !== '') { where.push('up.active = ?'); params.push(parseInt(active)); }
 
+    const passwordJoin = withPasswords
+      ? `LEFT JOIN radcheck rc ON rc.username = up.username AND rc.attribute = 'Cleartext-Password'`
+      : '';
+    const passwordSelect = withPasswords ? ', rc.value AS password' : '';
+
     const [rows] = await pool.query(
       `SELECT up.username, up.full_name, up.email, up.phone, up.department,
               up.active, up.expires_at, up.simultaneous_connections,
               up.created_at, up.created_by,
               rug.groupname, vp.vlan_id, vp.color AS vlan_color
+              ${passwordSelect}
        FROM user_profiles up
        LEFT JOIN radusergroup rug ON rug.username = up.username
        LEFT JOIN vlan_profiles vp ON vp.groupname = rug.groupname
+       ${passwordJoin}
        WHERE ${where.join(' AND ')}
        ORDER BY up.created_at DESC`,
       params

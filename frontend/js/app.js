@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       savePermissions(me.permissions);
       showApp();
       await loadGroups();
+      await loadDepartmentOptions();
       navigate('dashboard');
     } catch {
       showLogin();
