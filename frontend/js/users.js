@@ -25,32 +25,45 @@ function renderUsersTable({ users, total, page, limit }) {
   if (!users.length) {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="icon">👤</span><p>Nenhum usuário encontrado</p></div></td></tr>`;
   } else {
-    tbody.innerHTML = users.map(u => `
+    tbody.innerHTML = users.map(u => {
+      const initials = (u.full_name || u.username).charAt(0).toUpperCase();
+      const statusBadge = u.active
+        ? '<span class="badge badge-green"><span class="badge-dot badge-dot-pulse"></span>Ativo</span>'
+        : '<span class="badge badge-red">Bloqueado</span>';
+      return `
       <tr>
         <td>
-          <div style="font-weight:600;font-size:13.5px">${u.username}</div>
-          ${u.full_name ? `<div style="font-size:12px;color:var(--text-secondary)">${u.full_name}</div>` : ''}
-        </td>
-        <td>${u.email ? `<span style="color:var(--text-secondary)">${u.email}</span>` : '—'}</td>
-        <td>${u.department || '—'}</td>
-        <td>${vlanBadge(u.groupname, u.vlan_color, u.vlan_id)}</td>
-        <td>
-          <span class="badge ${u.active ? 'badge-green' : 'badge-red'}">
-            ${u.active ? '● Ativo' : '● Inativo'}
-          </span>
-        </td>
-        <td style="font-size:12px;color:var(--text-muted)">${fmtDate(u.created_at)}</td>
-        <td>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-ghost btn-sm" onclick="viewUser('${u.username}')">Ver</button>
-            <button class="btn btn-ghost btn-sm" onclick="editUser('${u.username}')">Editar</button>
-            <button class="btn btn-sm ${u.active ? 'btn-danger' : 'btn-success'}" onclick="toggleUser('${u.username}', ${u.active})">
-              ${u.active ? 'Bloquear' : 'Ativar'}
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.username}')">✕</button>
+          <div class="user-cell">
+            <div class="user-cell-avatar">${initials}</div>
+            <div class="user-cell-info">
+              <div class="primary">${u.username}</div>
+              ${u.full_name ? `<div class="secondary">${u.full_name}</div>` : ''}
+            </div>
           </div>
         </td>
-      </tr>`).join('');
+        <td style="font-size:13px;color:var(--text-secondary)">${u.email || '—'}</td>
+        <td style="font-size:13px">${u.department || '—'}</td>
+        <td>${vlanBadge(u.groupname, u.vlan_color, u.vlan_id)}</td>
+        <td>${statusBadge}</td>
+        <td style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">${fmtDate(u.created_at)}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalhes" onclick="viewUser('${u.username}')">
+              <svg><use href="#ic-eye"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="editUser('${u.username}')">
+              <svg><use href="#ic-edit"/></svg>
+            </button>
+            <button class="btn btn-sm btn-icon ${u.active ? 'btn-danger' : 'btn-success'}" title="${u.active ? 'Bloquear' : 'Ativar'}" onclick="toggleUser('${u.username}', ${u.active})">
+              <svg><use href="#ic-power"/></svg>
+            </button>
+            <button class="btn btn-danger btn-sm btn-icon" title="Remover" onclick="deleteUser('${u.username}')">
+              <svg><use href="#ic-trash"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
   }
 
   renderPagination('users-pagination', page, total, limit, p => { usersState.page = p; loadUsers(false); });

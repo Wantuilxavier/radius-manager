@@ -7,8 +7,14 @@ async function loadGroupsPage() {
     el.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
         ${groups.map(g => renderGroupCard(g)).join('')}
-        <div class="group-card" style="border-style:dashed;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--text-muted)" onclick="openNewGroupModal()">
-          <div style="text-align:center"><div style="font-size:28px;margin-bottom:8px">＋</div><div style="font-size:13px">Nova VLAN / Grupo</div></div>
+        <div class="group-card group-card-add" onclick="openNewGroupModal()">
+          <div>
+            <div style="width:40px;height:40px;border-radius:var(--radius-sm);border:2px dashed var(--border-2);display:flex;align-items:center;justify-content:center;margin-bottom:12px;transition:border-color var(--transition),background var(--transition)">
+              <svg style="width:20px;height:20px;color:var(--text-muted)"><use href="#ic-plus"/></svg>
+            </div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-secondary)">Nova VLAN / Grupo</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Adicionar novo grupo</div>
+          </div>
         </div>
       </div>`;
   } catch (err) {
@@ -17,28 +23,39 @@ async function loadGroupsPage() {
 }
 
 function renderGroupCard(g) {
+  const color = g.color || '#6366f1';
+  const colorDim = hexToRgba(color, 0.12);
+  const colorBorder = hexToRgba(color, 0.3);
   const statusBadge = g.active
-    ? '<span class="badge badge-green">● Ativo</span>'
-    : '<span class="badge badge-red">● Inativo</span>';
+    ? '<span class="badge badge-green">Ativo</span>'
+    : '<span class="badge badge-red">Inativo</span>';
+  const userLabel = `${g.user_count} usuário${g.user_count !== 1 ? 's' : ''}`;
   return `
     <div class="group-card">
-      <div class="vlan-stripe" style="background:${g.color || '#6366f1'}"></div>
+      <div class="vlan-stripe" style="background:linear-gradient(90deg,${color},${hexToRgba(color,0.6)})"></div>
       <div class="group-card-head">
-        <div>
+        <div class="group-card-info">
           <div class="group-card-name">${g.groupname}</div>
           <div class="group-card-desc">${g.description || 'Sem descrição'}</div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-          ${statusBadge}
-        </div>
+        ${statusBadge}
       </div>
-      <div class="group-card-meta" style="display:flex;gap:16px;margin-bottom:14px">
-        <span>VLAN <strong style="color:${g.color}">${g.vlan_id}</strong></span>
-        <span><strong>${g.user_count}</strong> usuário${g.user_count !== 1 ? 's' : ''}</span>
+      <div class="group-card-meta">
+        <span style="display:inline-flex;align-items:center;gap:6px;background:${colorDim};border:1px solid ${colorBorder};color:${color};padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;font-family:var(--font-mono)">
+          VLAN ${g.vlan_id}
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;color:var(--text-secondary);font-size:13px">
+          <svg style="width:14px;height:14px;color:var(--text-muted)"><use href="#ic-users"/></svg>
+          ${userLabel}
+        </span>
       </div>
       <div class="group-card-actions">
-        <button class="btn btn-ghost btn-sm" onclick='editGroup(${JSON.stringify(g)})'>Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.groupname}', ${g.user_count})">Remover</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick='editGroup(${JSON.stringify(g)})'>
+          <svg><use href="#ic-edit"/></svg> Editar
+        </button>
+        <button class="btn btn-danger btn-sm" style="justify-content:center" onclick="deleteGroup('${g.groupname}', ${g.user_count})">
+          <svg><use href="#ic-trash"/></svg>
+        </button>
       </div>
     </div>`;
 }

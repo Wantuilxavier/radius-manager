@@ -221,63 +221,63 @@ async function loadDashboard() {
     el.innerHTML = `
       <div class="stats-grid">
         <div class="stat-card" style="--card-accent:var(--accent);--card-dim:var(--accent-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-users"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-users"/></svg></div>
             </div>
+            <div class="stat-value">${t.users}</div>
+            <div class="stat-label">Total de usuários</div>
           </div>
-          <div class="stat-value">${t.users}</div>
-          <div class="stat-label">Total de usuários</div>
         </div>
 
         <div class="stat-card" style="--card-accent:var(--green);--card-dim:var(--green-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-user-check"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-user-check"/></svg></div>
             </div>
+            <div class="stat-value">${t.active_users}</div>
+            <div class="stat-label">Usuários ativos</div>
           </div>
-          <div class="stat-value">${t.active_users}</div>
-          <div class="stat-label">Usuários ativos</div>
         </div>
 
         <div class="stat-card" style="--card-accent:var(--red);--card-dim:var(--red-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-user-x"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-user-x"/></svg></div>
             </div>
+            <div class="stat-value">${t.inactive_users}</div>
+            <div class="stat-label">Bloqueados</div>
           </div>
-          <div class="stat-value">${t.inactive_users}</div>
-          <div class="stat-label">Usuários bloqueados</div>
         </div>
 
         <div class="stat-card" style="--card-accent:var(--yellow);--card-dim:var(--yellow-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-wifi"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-wifi"/></svg></div>
             </div>
+            <div class="stat-value">${t.online}</div>
+            <div class="stat-label">Online agora</div>
           </div>
-          <div class="stat-value">${t.online}</div>
-          <div class="stat-label">Online agora</div>
         </div>
 
         <div class="stat-card" style="--card-accent:var(--purple);--card-dim:var(--purple-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-network"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-network"/></svg></div>
             </div>
+            <div class="stat-value">${t.groups}</div>
+            <div class="stat-label">Grupos / VLANs</div>
           </div>
-          <div class="stat-value">${t.groups}</div>
-          <div class="stat-label">Grupos / VLANs</div>
         </div>
 
         <div class="stat-card" style="--card-accent:var(--blue);--card-dim:var(--blue-dim)">
-          <div class="stat-card-top">
-            <div class="stat-icon-wrap">
-              <svg><use href="#ic-barchart"/></svg>
+          <div class="stat-card-inner">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap"><svg><use href="#ic-barchart"/></svg></div>
             </div>
+            <div class="stat-value">${t.sessions_today}</div>
+            <div class="stat-label">Sessões hoje</div>
           </div>
-          <div class="stat-value">${t.sessions_today}</div>
-          <div class="stat-label">Sessões hoje</div>
         </div>
       </div>
 
