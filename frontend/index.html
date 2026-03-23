@@ -527,9 +527,24 @@
             <input id="new-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Grupo / VLAN <span class="form-required">*</span></label>
-          <select id="new-group" class="form-select"></select>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Grupo / VLAN <span class="form-required">*</span></label>
+            <select id="new-group" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conexões simultâneas</label>
+            <select id="new-simultaneous" class="form-select">
+              <option value="">Ilimitado</option>
+              <option value="1">1 dispositivo</option>
+              <option value="2">2 dispositivos</option>
+              <option value="3">3 dispositivos</option>
+              <option value="4">4 dispositivos</option>
+              <option value="5">5 dispositivos</option>
+              <option value="10">10 dispositivos</option>
+            </select>
+            <div class="form-hint">Máx. de dispositivos simultâneos para este usuário</div>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -589,6 +604,19 @@
           <label class="form-label">Grupo / VLAN</label>
           <select id="edit-group" class="form-select"></select>
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Conexões simultâneas</label>
+        <select id="edit-simultaneous" class="form-select">
+          <option value="">Ilimitado</option>
+          <option value="1">1 dispositivo</option>
+          <option value="2">2 dispositivos</option>
+          <option value="3">3 dispositivos</option>
+          <option value="4">4 dispositivos</option>
+          <option value="5">5 dispositivos</option>
+          <option value="10">10 dispositivos</option>
+        </select>
+        <div class="form-hint">Máx. de dispositivos que podem se conectar ao mesmo tempo</div>
       </div>
       <div class="form-row">
         <div class="form-group">

@@ -82,10 +82,85 @@ function renderUsersTable({ users, total, page, limit }) {
   }
 }
 
+// ─── Device helpers ────────────────────────────────────────────
+function fmtMac(mac) {
+  if (!mac) return '—';
+  return mac.toUpperCase();
+}
+
+function deviceIcon(vendor) {
+  const v = (vendor || '').toLowerCase();
+  if (v.includes('apple'))    return '🍎';
+  if (v.includes('samsung'))  return '📱';
+  if (v.includes('xiaomi'))   return '📱';
+  if (v.includes('google'))   return '📱';
+  if (v.includes('raspberry')) return '🖥️';
+  if (v.includes('vmware'))   return '💻';
+  return '📡';
+}
+
+function fmtConnectionType(ct) {
+  if (!ct) return '—';
+  // Unifi envia: "CONNECT 300Mbps 802.11n", "CONNECT 867Mbps 802.11ac" etc.
+  return ct.replace('CONNECT ', '').trim();
+}
+
+function renderDevicesSection(devices, username) {
+  if (!devices || !devices.length) {
+    return `<div style="background:var(--bg-hover);border-radius:var(--radius-sm);padding:16px;text-align:center;color:var(--text-muted);font-size:13px">
+              Nenhum dispositivo conectado no momento
+            </div>`;
+  }
+
+  const rows = devices.map((d, i) => `
+    <tr>
+      <td style="font-size:18px;text-align:center;width:36px">${deviceIcon(d.vendor)}</td>
+      <td>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:600">${fmtMac(d.mac)}</div>
+        ${d.vendor ? `<div style="font-size:11px;color:var(--text-muted)">${d.vendor}</div>` : ''}
+      </td>
+      <td>
+        <div style="font-size:12px">${d.ap_name || d.ap_ip || '—'}</div>
+        ${d.ssid ? `<div style="font-size:11px;color:var(--text-muted)">SSID: ${d.ssid}</div>` : ''}
+      </td>
+      <td style="font-family:var(--font-mono);font-size:12px">${d.device_ip || '—'}</td>
+      <td style="font-size:12px">${fmtConnectionType(d.connection_type)}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${fmtDuration(d.session_seconds ? Math.round(d.session_seconds / 60) : null)}</td>
+    </tr>`).join('');
+
+  return `
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px">
+      ${devices.length} dispositivo${devices.length !== 1 ? 's' : ''} conectado${devices.length !== 1 ? 's' : ''}
+    </div>
+    <div class="table-wrapper" style="font-size:12px">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>MAC / Fabricante</th>
+            <th>Access Point</th>
+            <th>IP</th>
+            <th>Conexão</th>
+            <th>Tempo</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
 // ─── User actions ─────────────────────────────────────────────
 async function viewUser(username) {
   try {
-    const u = await api.get(`/users/${username}`);
+    const [u, devData] = await Promise.all([
+      api.get(`/users/${username}`),
+      api.get(`/users/${username}/devices`).catch(() => ({ devices: [] })),
+    ]);
+
+    const simLabel = u.simultaneous_connections
+      ? `${u.simultaneous_connections} dispositivo${u.simultaneous_connections !== 1 ? 's' : ''}`
+      : 'Ilimitado';
+
     document.getElementById('view-user-title').textContent = u.username;
     document.getElementById('view-user-body').innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
@@ -108,21 +183,32 @@ async function viewUser(username) {
         <div class="info-item"><label>Expira em</label><span>${u.expires_at ? fmtDate(u.expires_at) : 'Nunca'}</span></div>
         <div class="info-item"><label>Criado em</label><span>${fmtDate(u.created_at)}</span></div>
         <div class="info-item"><label>Criado por</label><span>${u.created_by || '—'}</span></div>
+        <div class="info-item"><label>Conexões simultâneas</label><span>${simLabel}</span></div>
       </div>
       ${u.notes ? `<div style="background:var(--bg-hover);padding:12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);margin-bottom:20px"><strong>Observações:</strong><br>${u.notes}</div>` : ''}
+
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Dispositivos conectados agora</div>
+      ${renderDevicesSection(devData.devices, username)}
+
       ${u.sessions?.length ? `
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Últimas sessões</div>
+        <div style="font-size:13px;font-weight:600;margin:20px 0 10px">Últimas sessões</div>
         <div class="table-wrapper" style="font-size:12px">
           <table>
-            <thead><tr><th>Início</th><th>IP</th><th>AP</th><th>Duração</th></tr></thead>
-            <tbody>${u.sessions.map(s => `<tr>
-              <td style="font-family:var(--font-mono)">${fmtDate(s.acctstarttime)}</td>
-              <td style="font-family:var(--font-mono)">${s.framedipaddress || '—'}</td>
-              <td style="font-family:var(--font-mono)">${s.nasipaddress}</td>
-              <td>${fmtDuration(s.acctsessiontime ? Math.round(s.acctsessiontime/60) : null)}</td>
-            </tr>`).join('')}</tbody>
+            <thead><tr><th>Início</th><th>IP</th><th>AP</th><th>SSID</th><th>Duração</th></tr></thead>
+            <tbody>${u.sessions.map(s => {
+              const ssidPart = s.calledstationid
+                ? (() => { const lc = s.calledstationid.lastIndexOf(':'); return lc > 11 ? s.calledstationid.substring(lc + 1) : '—'; })()
+                : '—';
+              return `<tr>
+                <td style="font-family:var(--font-mono)">${fmtDate(s.acctstarttime)}</td>
+                <td style="font-family:var(--font-mono)">${s.framedipaddress || '—'}</td>
+                <td style="font-family:var(--font-mono)">${s.nasipaddress}</td>
+                <td style="font-size:11px">${ssidPart}</td>
+                <td>${fmtDuration(s.acctsessiontime ? Math.round(s.acctsessiontime/60) : null)}</td>
+              </tr>`;
+            }).join('')}</tbody>
           </table>
-        </div>` : '<p style="color:var(--text-muted);font-size:13px">Nenhuma sessão registrada</p>'}
+        </div>` : '<p style="color:var(--text-muted);font-size:13px;margin-top:16px">Nenhuma sessão registrada</p>'}
     `;
     openModal('modal-view-user');
   } catch (err) { toast(err.message, 'error'); }
@@ -140,6 +226,7 @@ async function editUser(username) {
     document.getElementById('edit-notes').value      = u.notes || '';
     document.getElementById('edit-expires').value    = u.expires_at ? u.expires_at.slice(0,16) : '';
     document.getElementById('edit-password').value   = '';
+    document.getElementById('edit-simultaneous').value = u.simultaneous_connections != null ? String(u.simultaneous_connections) : '';
     const gs = document.getElementById('edit-group');
     gs.innerHTML = groupOptions(u.groupname);
     openModal('modal-edit-user');
@@ -149,14 +236,15 @@ async function editUser(username) {
 async function submitEditUser() {
   const username = document.getElementById('edit-username-val').value;
   const body = {
-    full_name:  document.getElementById('edit-fullname').value.trim() || null,
-    email:      document.getElementById('edit-email').value.trim() || null,
-    phone:      document.getElementById('edit-phone').value.trim() || null,
-    department: document.getElementById('edit-department').value.trim() || null,
-    notes:      document.getElementById('edit-notes').value.trim() || null,
-    expires_at: document.getElementById('edit-expires').value || null,
-    groupname:  document.getElementById('edit-group').value,
-    password:   document.getElementById('edit-password').value || undefined,
+    full_name:                document.getElementById('edit-fullname').value.trim() || null,
+    email:                    document.getElementById('edit-email').value.trim() || null,
+    phone:                    document.getElementById('edit-phone').value.trim() || null,
+    department:               document.getElementById('edit-department').value.trim() || null,
+    notes:                    document.getElementById('edit-notes').value.trim() || null,
+    expires_at:               document.getElementById('edit-expires').value || null,
+    groupname:                document.getElementById('edit-group').value,
+    password:                 document.getElementById('edit-password').value || undefined,
+    simultaneous_connections: document.getElementById('edit-simultaneous').value || null,
   };
   if (!body.password) delete body.password;
 
@@ -202,15 +290,16 @@ async function submitNewUser() {
   errorEl.style.display = 'none';
 
   const body = {
-    username:   document.getElementById('new-username').value.trim(),
-    password:   document.getElementById('new-password').value,
-    groupname:  document.getElementById('new-group').value,
-    full_name:  document.getElementById('new-fullname').value.trim() || null,
-    email:      document.getElementById('new-email').value.trim() || null,
-    phone:      document.getElementById('new-phone').value.trim() || null,
-    department: document.getElementById('new-department').value.trim() || null,
-    notes:      document.getElementById('new-notes').value.trim() || null,
-    expires_at: document.getElementById('new-expires').value || null,
+    username:                 document.getElementById('new-username').value.trim(),
+    password:                 document.getElementById('new-password').value,
+    groupname:                document.getElementById('new-group').value,
+    full_name:                document.getElementById('new-fullname').value.trim() || null,
+    email:                    document.getElementById('new-email').value.trim() || null,
+    phone:                    document.getElementById('new-phone').value.trim() || null,
+    department:               document.getElementById('new-department').value.trim() || null,
+    notes:                    document.getElementById('new-notes').value.trim() || null,
+    expires_at:               document.getElementById('new-expires').value || null,
+    simultaneous_connections: document.getElementById('new-simultaneous').value || null,
   };
 
   if (!body.username || !body.password || !body.groupname) {
