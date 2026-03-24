@@ -82,13 +82,14 @@ function parseCalledStation(calledStationId) {
 // ─── GET /api/users ───────────────────────────────────────────────────────────
 router.get('/', requirePermission('users', 'view'), async (req, res) => {
   try {
-    const { search, group, active, page = 1, limit = 20 } = req.query;
+    const { search, group, active, department, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = ['1=1'];
     let params = [];
 
-    if (search) { where.push('(up.username LIKE ? OR up.full_name LIKE ? OR up.email LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-    if (group)  { where.push('rug.groupname = ?'); params.push(group); }
+    if (search)     { where.push('(up.username LIKE ? OR up.full_name LIKE ? OR up.email LIKE ?)'); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (group)      { where.push('rug.groupname = ?'); params.push(group); }
+    if (department) { where.push('up.department = ?'); params.push(department); }
     if (active !== undefined && active !== '') { where.push('up.active = ?'); params.push(parseInt(active)); }
 
     const whereStr = where.join(' AND ');

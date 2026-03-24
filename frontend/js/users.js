@@ -1,5 +1,5 @@
 // ─── USERS PAGE ───────────────────────────────────────────────
-let usersState = { page: 1, search: '', group: '', active: '', limit: 20 };
+let usersState = { page: 1, search: '', group: '', active: '', department: '', limit: 20 };
 
 async function loadUsers(resetPage = true) {
   if (resetPage) usersState.page = 1;
@@ -9,9 +9,10 @@ async function loadUsers(resetPage = true) {
   try {
     const q = new URLSearchParams({
       page: usersState.page, limit: usersState.limit,
-      ...(usersState.search && { search: usersState.search }),
-      ...(usersState.group  && { group:  usersState.group  }),
-      ...(usersState.active !== '' && { active: usersState.active }),
+      ...(usersState.search     && { search:     usersState.search }),
+      ...(usersState.group      && { group:      usersState.group }),
+      ...(usersState.department && { department: usersState.department }),
+      ...(usersState.active !== '' && { active:  usersState.active }),
     });
     const data = await api.get(`/users?${q}`);
     renderUsersTable(data);
@@ -79,6 +80,16 @@ function renderUsersTable({ users, total, page, limit }) {
       `<option value="${g.groupname}">${g.groupname} — VLAN ${g.vlan_id}</option>`
     ).join('');
     gf.dataset.loaded = '1';
+  }
+
+  // Update department filter options
+  const df = document.getElementById('filter-department');
+  if (df && !df.dataset.loaded && _departmentsList.length) {
+    const cur = usersState.department;
+    df.innerHTML = '<option value="">Todos os departamentos</option>' + _departmentsList.map(d =>
+      `<option value="${d.name}" ${d.name === cur ? 'selected' : ''}>${d.name}</option>`
+    ).join('');
+    df.dataset.loaded = '1';
   }
 }
 
@@ -226,13 +237,7 @@ async function editUser(username) {
     document.getElementById('edit-expires').value    = u.expires_at ? u.expires_at.slice(0,16) : '';
     document.getElementById('edit-password').value   = '';
     document.getElementById('edit-simultaneous').value = u.simultaneous_connections != null ? String(u.simultaneous_connections) : '';
-    // Departamento: select se houver lista, senão input texto
-    const deptEl = document.getElementById('edit-department');
-    if (deptEl.tagName === 'SELECT') {
-      deptEl.innerHTML = departmentOptions(u.department || '');
-    } else {
-      deptEl.value = u.department || '';
-    }
+    document.getElementById('edit-department').value = u.department || '';
     const gs = document.getElementById('edit-group');
     gs.innerHTML = groupOptions(u.groupname);
     openModal('modal-edit-user');
@@ -284,17 +289,9 @@ async function deleteUser(username) {
 }
 
 async function createUser() {
-  const gs = document.getElementById('new-group');
-  gs.innerHTML = groupOptions('');
-  // Departamento: popula select se disponível
-  const deptEl = document.getElementById('new-department');
-  if (deptEl && deptEl.tagName === 'SELECT') {
-    deptEl.innerHTML = departmentOptions('');
-  }
   document.getElementById('form-new-user').reset();
-  // reset() apaga os selects — repopula
+  const gs = document.getElementById('new-group');
   if (gs) gs.innerHTML = groupOptions('');
-  if (deptEl && deptEl.tagName === 'SELECT') deptEl.innerHTML = departmentOptions('');
   document.getElementById('new-user-error').style.display = 'none';
   openModal('modal-new-user');
 }
@@ -351,4 +348,6 @@ function initUserFilters() {
   if (groupFilter) groupFilter.addEventListener('change', e => { usersState.group = e.target.value; loadUsers(); });
   const activeFilter = document.getElementById('filter-active');
   if (activeFilter) activeFilter.addEventListener('change', e => { usersState.active = e.target.value; loadUsers(); });
+  const deptFilter = document.getElementById('filter-department');
+  if (deptFilter) deptFilter.addEventListener('change', e => { usersState.department = e.target.value; loadUsers(); });
 }

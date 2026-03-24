@@ -149,6 +149,16 @@ async function loadDepartmentOptions() {
     const depts = await api.get('/departments');
     _departmentsList = depts.filter(d => d.active);
   } catch { _departmentsList = []; }
+  // Popula filtro de departamento na listagem de usuários
+  const df = document.getElementById('filter-department');
+  if (df) {
+    df.innerHTML = '<option value="">Todos os departamentos</option>' + _departmentsList.map(d =>
+      `<option value="${d.name}">${d.name}</option>`
+    ).join('');
+    df.dataset.loaded = '1';
+  }
+  initDeptCombobox('new-department', 'new-dept-combo-list');
+  initDeptCombobox('edit-department', 'edit-dept-combo-list');
 }
 
 function departmentOptions(selected) {
@@ -156,4 +166,71 @@ function departmentOptions(selected) {
     `<option value="${d.name}" ${d.name === selected ? 'selected' : ''}>${d.name}</option>`
   ).join('');
   return `<option value="">— Selecione —</option>${opts}`;
+}
+
+// ─── Searchable combobox for department fields ─────────────────
+function initDeptCombobox(inputId, listId) {
+  const input = document.getElementById(inputId);
+  const list  = document.getElementById(listId);
+  if (!input || !list) return;
+
+  // Remove previous listeners by cloning
+  const newInput = input.cloneNode(true);
+  input.parentNode.replaceChild(newInput, input);
+  const inp = document.getElementById(inputId);
+
+  function renderList(filter) {
+    const f = (filter || '').toLowerCase();
+    const filtered = _departmentsList.filter(d => !f || d.name.toLowerCase().includes(f));
+    if (!filtered.length) {
+      list.innerHTML = `<div class="dept-combo-empty">Nenhum departamento encontrado</div>`;
+    } else {
+      list.innerHTML = filtered.map(d =>
+        `<div class="dept-combo-item" data-value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</div>`
+      ).join('');
+    }
+  }
+
+  function open() { renderList(inp.value); list.classList.add('open'); }
+  function close() { list.classList.remove('open'); }
+
+  inp.addEventListener('focus', open);
+  inp.addEventListener('input', () => { renderList(inp.value); list.classList.add('open'); });
+
+  list.addEventListener('mousedown', e => {
+    e.preventDefault(); // prevent blur before click
+    const item = e.target.closest('.dept-combo-item[data-value]');
+    if (item) { inp.value = item.dataset.value; close(); }
+  });
+
+  inp.addEventListener('blur', () => setTimeout(close, 150));
+
+  inp.addEventListener('keydown', e => {
+    if (!list.classList.contains('open')) return;
+    const items = list.querySelectorAll('.dept-combo-item[data-value]');
+    const cur = list.querySelector('.dept-combo-item.highlighted');
+    let idx = Array.from(items).indexOf(cur);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (cur) cur.classList.remove('highlighted');
+      idx = (idx + 1) % items.length;
+      items[idx]?.classList.add('highlighted');
+      items[idx]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (cur) cur.classList.remove('highlighted');
+      idx = (idx - 1 + items.length) % items.length;
+      items[idx]?.classList.add('highlighted');
+      items[idx]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (cur) { inp.value = cur.dataset.value; close(); }
+    } else if (e.key === 'Escape') {
+      close();
+    }
+  });
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
