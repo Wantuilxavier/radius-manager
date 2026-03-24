@@ -57,20 +57,26 @@ router.put('/:groupname', requirePermission('groups', 'edit'), async (req, res) 
   const { groupname } = req.params;
   const { vlan_id, description, color, active } = req.body;
 
+  if (!vlan_id)
+    return res.status(400).json({ error: 'vlan_id é obrigatório' });
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.query(
+    const [r] = await conn.query(
       'UPDATE vlan_profiles SET vlan_id=?, description=?, color=?, active=? WHERE groupname=?',
       [vlan_id, description || null, color || '#6366f1', active !== undefined ? active : 1, groupname]
     );
-    if (vlan_id) {
-      await conn.query("UPDATE radgroupreply SET value=? WHERE groupname=? AND attribute='Tunnel-Private-Group-Id'", [String(vlan_id), groupname]);
+    if (!r.affectedRows) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Grupo não encontrado' });
     }
+    await conn.query("UPDATE radgroupreply SET value=? WHERE groupname=? AND attribute='Tunnel-Private-Group-Id'", [String(vlan_id), groupname]);
     await conn.commit();
     res.json({ message: 'Grupo atualizado' });
   } catch (err) {
     await conn.rollback();
+    console.error(err);
     res.status(500).json({ error: 'Erro ao atualizar grupo' });
   } finally {
     conn.release();
@@ -91,8 +97,9 @@ router.delete('/:groupname', requirePermission('groups', 'delete'), async (req, 
     await conn.query('DELETE FROM vlan_profiles WHERE groupname = ?', [groupname]);
     await conn.commit();
     res.json({ message: 'Grupo removido' });
-  } catch {
+  } catch (err) {
     await conn.rollback();
+    console.error(err);
     res.status(500).json({ error: 'Erro ao remover grupo' });
   } finally {
     conn.release();

@@ -168,6 +168,12 @@ async function submitEditNas() {
     description: document.getElementById('edit-nas-desc').value.trim() || null,
   };
 
+  if (!body.nasname || !body.secret) {
+    errEl.textContent = 'IP/Hostname e Secret são obrigatórios';
+    errEl.style.display = 'block';
+    return;
+  }
+
   const btn = document.getElementById('btn-save-nas');
   btn.disabled = true; btn.textContent = 'Salvando...';
 

@@ -58,6 +58,8 @@ router.post('/', requirePermission('nas', 'create'), async (req, res) => {
 // PUT /api/nas/:id
 router.put('/:id', requirePermission('nas', 'edit'), async (req, res) => {
   const { nasname, shortname, type, secret, ports, community, description } = req.body;
+  if (!nasname || !secret)
+    return res.status(400).json({ error: 'IP/hostname e secret são obrigatórios' });
   try {
     const [r] = await pool.query(
       `UPDATE nas SET nasname=?, shortname=?, type=?, secret=?, ports=?, community=?, description=?
@@ -66,7 +68,8 @@ router.put('/:id', requirePermission('nas', 'edit'), async (req, res) => {
     );
     if (!r.affectedRows) return res.status(404).json({ error: 'NAS não encontrado' });
     res.json({ message: 'NAS atualizado com sucesso' });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro ao atualizar NAS' });
   }
 });

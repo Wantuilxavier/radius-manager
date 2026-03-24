@@ -10,6 +10,7 @@ const PAGE_META = {
   sessions:    'Sessões Ativas',
   audit:       'Log de Auditoria',
   nas:         'Dispositivos NAS',
+  devices:     'Dispositivos MAC',
   departments: 'Departamentos',
   settings:    'Configurações',
 };
@@ -189,6 +190,7 @@ async function navigate(page) {
   if (page === 'sessions')    loadSessions();
   if (page === 'audit')       loadAudit();
   if (page === 'nas')         loadNas();
+  if (page === 'devices')     loadDevices();
   if (page === 'departments') loadDepartmentsPage();
   if (page === 'settings')    loadSettings();
 }
@@ -206,6 +208,7 @@ const NAV_PERMS = {
   sessions:    ['sessions',    'view'],
   audit:       ['audit',       'view'],
   nas:         ['nas',         'view'],
+  devices:     ['devices',     'view'],
   departments: ['departments', 'view'],
 };
 
@@ -238,6 +241,10 @@ function _applyPagePermissions(page) {
   // Botão "Novo NAS"
   const btnNewNas = document.getElementById('btn-new-nas');
   if (btnNewNas) btnNewNas.style.display = hasPermission('nas', 'create') ? '' : 'none';
+
+  // Botão "Novo Dispositivo MAC"
+  const btnNewDevice = document.getElementById('btn-new-device');
+  if (btnNewDevice) btnNewDevice.style.display = hasPermission('devices', 'create') ? '' : 'none';
 
   // Botão "Novo Departamento"
   const btnNewDept = document.getElementById('btn-new-department');

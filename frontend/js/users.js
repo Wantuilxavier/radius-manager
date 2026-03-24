@@ -318,6 +318,11 @@ async function submitNewUser() {
     errorEl.style.display = 'block';
     return;
   }
+  if (body.password.length < 6) {
+    errorEl.textContent = 'A senha deve ter no mínimo 6 caracteres';
+    errorEl.style.display = 'block';
+    return;
+  }
 
   const btn = document.getElementById('btn-create-user');
   btn.disabled = true; btn.textContent = 'Criando...';

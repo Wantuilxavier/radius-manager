@@ -169,6 +169,13 @@
   <symbol id="ic-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
   </symbol>
+  <!-- Device / MAC -->
+  <symbol id="ic-device" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2"/>
+    <rect x="8" y="8" width="8" height="8" rx="1"/>
+    <line x1="4" y1="12" x2="1" y2="12"/><line x1="23" y1="12" x2="20" y2="12"/>
+    <line x1="12" y1="4" x2="12" y2="1"/><line x1="12" y1="23" x2="12" y2="20"/>
+  </symbol>
 </svg>
 
 <!-- ══════════════════════ LOGIN ══════════════════════════════ -->
@@ -259,6 +266,9 @@
         </div>
         <div class="nav-item" data-page="nas">
           <svg><use href="#ic-server"/></svg> Dispositivos NAS
+        </div>
+        <div class="nav-item" data-page="devices">
+          <svg><use href="#ic-device"/></svg> Dispositivos MAC
         </div>
         <div class="nav-item" data-page="settings">
           <svg><use href="#ic-settings"/></svg> Configurações
@@ -447,6 +457,27 @@
       </div>
       <div class="page-content">
         <div id="nas-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
+      </div>
+    </div>
+
+    <!-- ── Devices (MAC) ── -->
+    <div id="page-devices" class="page" style="display:none">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Dispositivos MAC</h1>
+          <p>Cadastre dispositivos sem 802.1X por MAC Address (MAB) — impressoras, câmeras, Smart TVs</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="loadDevices()">
+            <svg><use href="#ic-refresh"/></svg> Atualizar
+          </button>
+          <button class="btn btn-primary" id="btn-new-device" onclick="openNewDeviceModal()">
+            <svg><use href="#ic-plus"/></svg> Novo Dispositivo
+          </button>
+        </div>
+      </div>
+      <div class="page-content">
+        <div id="devices-content"><div class="loading-overlay"><span class="spinner"></span></div></div>
       </div>
     </div>
 
@@ -1018,6 +1049,114 @@
   </div>
 </div>
 
+<!-- Modal: Novo Dispositivo MAC -->
+<div id="modal-new-device" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo Dispositivo por MAC</span>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div id="new-device-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="new-device-error-msg"></span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">MAC Address <span class="form-required">*</span></label>
+          <input id="new-device-mac" class="form-input" type="text" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" style="font-family:var(--font-mono)">
+          <div class="form-hint">Aceita formatos: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF ou AABBCCDDEEFF</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome / Alias</label>
+          <input id="new-device-alias" class="form-input" type="text" placeholder="Ex: Impressora RH, Câmera Recepção">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo de dispositivo</label>
+          <select id="new-device-type" class="form-select">
+            <option value="printer">🖨️ Impressora</option>
+            <option value="camera">📷 Câmera IP</option>
+            <option value="tv">📺 Smart TV</option>
+            <option value="iot">🔌 IoT / Sensor</option>
+            <option value="console">🎮 Console / Videogame</option>
+            <option value="voip">📞 Telefone VoIP</option>
+            <option value="other" selected>📡 Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grupo / VLAN <span class="form-required">*</span></label>
+          <select id="new-device-group" class="form-select"></select>
+          <div class="form-hint">VLAN que o dispositivo receberá ao autenticar</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Descrição</label>
+        <input id="new-device-desc" class="form-input" type="text" placeholder="Ex: Impressora HP, sala de reunião 2º andar">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-device')">Cancelar</button>
+      <button id="btn-create-device" class="btn btn-primary" onclick="submitNewDevice()">
+        <svg><use href="#ic-plus"/></svg> Cadastrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Dispositivo MAC -->
+<div id="modal-edit-device" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Editar Dispositivo</span>
+      <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div id="edit-device-error" class="alert-error" style="display:none">
+        <svg><use href="#ic-alert"/></svg><span id="edit-device-error-msg"></span>
+      </div>
+      <input id="edit-device-mac-val" type="hidden">
+      <div class="form-group">
+        <label class="form-label">MAC Address</label>
+        <div id="edit-device-mac-show" class="form-input" style="font-family:var(--font-mono);background:var(--bg-hover);color:var(--text-muted);cursor:default"></div>
+        <div class="form-hint">O MAC Address não pode ser alterado após o cadastro</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome / Alias</label>
+          <input id="edit-device-alias" class="form-input" type="text" placeholder="Ex: Impressora RH">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de dispositivo</label>
+          <select id="edit-device-type" class="form-select">
+            <option value="printer">🖨️ Impressora</option>
+            <option value="camera">📷 Câmera IP</option>
+            <option value="tv">📺 Smart TV</option>
+            <option value="iot">🔌 IoT / Sensor</option>
+            <option value="console">🎮 Console / Videogame</option>
+            <option value="voip">📞 Telefone VoIP</option>
+            <option value="other">📡 Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Grupo / VLAN</label>
+        <select id="edit-device-group" class="form-select"></select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Descrição</label>
+        <input id="edit-device-desc" class="form-input" type="text">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-device')">Cancelar</button>
+      <button id="btn-save-device" class="btn btn-primary" onclick="submitEditDevice()">
+        <svg><use href="#ic-check"/></svg> Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Novo Admin -->
 <div id="modal-new-admin" class="modal-overlay">
   <div class="modal">
@@ -1096,6 +1235,7 @@
 <script src="js/users.js"></script>
 <script src="js/groups-sessions.js"></script>
 <script src="js/nas.js"></script>
+<script src="js/devices.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/departments.js"></script>
 <script src="js/export-pdf.js"></script>

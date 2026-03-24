@@ -6,7 +6,7 @@ const { authMiddleware, requireSuperAdmin, requirePermission } = require('../mid
 router.use(authMiddleware);
 
 // ─── Recursos e ações disponíveis ────────────────────────────
-const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit', 'departments'];
+const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit', 'departments', 'devices'];
 const ACTIONS   = {
   dashboard:   ['view'],
   users:       ['view', 'create', 'edit', 'delete', 'toggle', 'export'],
@@ -15,6 +15,7 @@ const ACTIONS   = {
   sessions:    ['view'],
   audit:       ['view'],
   departments: ['view', 'create', 'edit', 'delete'],
+  devices:     ['view', 'create', 'edit', 'delete', 'toggle'],
 };
 
 // Permissões padrão por role (aplicadas ao criar novo admin)
@@ -41,6 +42,11 @@ const DEFAULT_PERMISSIONS = {
     { resource: 'departments', action: 'create' },
     { resource: 'departments', action: 'edit'   },
     { resource: 'departments', action: 'delete' },
+    { resource: 'devices',     action: 'view'   },
+    { resource: 'devices',     action: 'create' },
+    { resource: 'devices',     action: 'edit'   },
+    { resource: 'devices',     action: 'delete' },
+    { resource: 'devices',     action: 'toggle' },
   ],
   viewer: [
     { resource: 'dashboard',   action: 'view' },
@@ -50,6 +56,7 @@ const DEFAULT_PERMISSIONS = {
     { resource: 'sessions',    action: 'view' },
     { resource: 'audit',       action: 'view' },
     { resource: 'departments', action: 'view' },
+    { resource: 'devices',     action: 'view' },
   ],
 };
 
