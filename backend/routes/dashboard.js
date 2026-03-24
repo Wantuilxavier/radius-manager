@@ -7,9 +7,15 @@ router.use(authMiddleware);
 // GET /api/dashboard/stats
 router.get('/stats', requirePermission('dashboard', 'view'), async (req, res) => {
   try {
-    const [[users]]   = await pool.query('SELECT COUNT(*) as total, SUM(active=1) as active, SUM(active=0) as inactive FROM user_profiles');
+    const [[users]]   = await pool.query('SELECT COUNT(*) as total, COALESCE(SUM(active=1), 0) as active, COALESCE(SUM(active=0), 0) as inactive FROM user_profiles');
     const [[groups]]  = await pool.query('SELECT COUNT(*) as total FROM vlan_profiles WHERE active = 1');
-    const [[online]]  = await pool.query("SELECT COUNT(DISTINCT username) as total FROM radacct WHERE acctstoptime IS NULL AND acctstarttime >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    const [[online]]  = await pool.query(
+      `SELECT COUNT(DISTINCT ra.username) as total
+       FROM radacct ra
+       JOIN user_profiles up ON up.username = ra.username
+       WHERE ra.acctstoptime IS NULL
+         AND ra.acctstarttime >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+    );
     const [[sessions_today]] = await pool.query("SELECT COUNT(*) as total FROM radacct WHERE DATE(acctstarttime) = CURDATE()");
     
     // Sessões por grupo
@@ -64,7 +70,8 @@ router.get('/audit', requirePermission('audit', 'view'), async (req, res) => {
     );
     const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM audit_log');
     res.json({ logs: rows, total });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro ao buscar logs' });
   }
 });
@@ -84,13 +91,14 @@ router.get('/sessions', requirePermission('sessions', 'view'), async (req, res) 
        LIMIT 100`
     );
     res.json(rows);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro ao buscar sessões' });
   }
 });
 
 // GET /api/dashboard/nas
-router.get('/nas', async (req, res) => {
+router.get('/nas', requirePermission('nas', 'view'), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT id, nasname, shortname, type, description FROM nas ORDER BY shortname');
     res.json(rows);

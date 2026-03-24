@@ -777,9 +777,19 @@
         <label class="form-label">Nome <span class="form-required">*</span></label>
         <input id="dept-name" class="form-input" type="text" placeholder="Ex: Tecnologia da Informação">
       </div>
-      <div class="form-group" style="margin-bottom:0">
+      <div class="form-group">
         <label class="form-label">Descrição</label>
         <input id="dept-desc" class="form-input" type="text" placeholder="Descrição opcional">
+      </div>
+      <div class="form-group" id="dept-active-wrap" style="margin-bottom:0;display:none">
+        <label class="form-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <label class="toggle">
+            <input id="dept-active" type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Departamento ativo</span>
+        </label>
+        <div class="form-hint">Departamentos inativos não aparecem nos formulários de cadastro</div>
       </div>
     </div>
     <div class="modal-footer">

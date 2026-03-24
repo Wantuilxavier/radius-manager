@@ -77,6 +77,8 @@ function openNewDeptModal() {
   document.getElementById('dept-id-val').value = '';
   document.getElementById('dept-name').value   = '';
   document.getElementById('dept-desc').value   = '';
+  document.getElementById('dept-active').checked = true;
+  document.getElementById('dept-active-wrap').style.display = 'none';
   document.getElementById('dept-error').style.display = 'none';
   const btn = document.getElementById('btn-save-dept');
   btn.innerHTML = '<svg><use href="#ic-plus"/></svg> Criar';
@@ -89,6 +91,8 @@ function openEditDeptModal(d) {
   document.getElementById('dept-id-val').value = d.id;
   document.getElementById('dept-name').value   = d.name;
   document.getElementById('dept-desc').value   = d.description || '';
+  document.getElementById('dept-active').checked = !!d.active;
+  document.getElementById('dept-active-wrap').style.display = '';
   document.getElementById('dept-error').style.display = 'none';
   const btn = document.getElementById('btn-save-dept');
   btn.innerHTML = '<svg><use href="#ic-check"/></svg> Salvar';
@@ -99,11 +103,11 @@ async function submitDept() {
   const errEl = document.getElementById('dept-error');
   errEl.style.display = 'none';
 
-  const name = document.getElementById('dept-name').value.trim();
-  const desc = document.getElementById('dept-desc').value.trim() || null;
+  const name   = document.getElementById('dept-name').value.trim();
+  const desc   = document.getElementById('dept-desc').value.trim() || null;
+  const active = document.getElementById('dept-active').checked ? 1 : 0;
 
   if (!name) {
-    errEl.querySelector('#dept-error-msg') ? null : null;
     errEl.textContent = 'Nome do departamento é obrigatório';
     errEl.style.display = 'block'; return;
   }
@@ -113,8 +117,8 @@ async function submitDept() {
 
   try {
     if (_deptEditId) {
-      await api.put(`/departments/${_deptEditId}`, { name, description: desc, active: 1 });
-      toast(`Departamento "${name}" atualizado`, 'success');
+      await api.put(`/departments/${_deptEditId}`, { name, description: desc, active });
+      toast(`Departamento "${name}" ${active ? 'atualizado' : 'desativado'}`, 'success');
     } else {
       await api.post('/departments', { name, description: desc });
       toast(`Departamento "${name}" criado`, 'success');

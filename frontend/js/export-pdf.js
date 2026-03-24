@@ -20,9 +20,10 @@ async function generateUsersPdf() {
     // Coleta os filtros atuais da listagem de usuários
     const q = new URLSearchParams({
       limit: 9999,
-      ...(usersState.search && { search: usersState.search }),
-      ...(usersState.group  && { group:  usersState.group  }),
-      ...(usersState.active !== '' && { active: usersState.active }),
+      ...(usersState.search      && { search:      usersState.search }),
+      ...(usersState.group       && { group:        usersState.group }),
+      ...(usersState.department  && { department:   usersState.department }),
+      ...(usersState.active !== '' && { active:     usersState.active }),
     });
 
     const { users, total, exported_at } = await api.get(`/settings/users-export?${q}`);
@@ -166,10 +167,11 @@ function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMa
       status:    { halign: 'center' },
       sim_conn:  { halign: 'center' },
     },
-    didDrawCell: (data) => {
+    willDrawCell: (data) => {
       if (data.section === 'body' && data.column.dataKey === 'status') {
-        const val = data.cell.raw;
-        doc.setFillColor(val === 'Ativo' ? 16 : 239, val === 'Ativo' ? 185 : 68, val === 'Ativo' ? 129 : 68);
+        data.cell.styles.fillColor = data.cell.raw === 'Ativo' ? [16, 185, 129] : [239, 68, 68];
+        data.cell.styles.textColor = [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
       }
     },
     margin: { top: 22, left: 10, right: 10 },

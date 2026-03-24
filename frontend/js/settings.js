@@ -244,6 +244,7 @@ const RESOURCE_LABELS = {
   sessions:    'Sessões Ativas',
   audit:       'Log de Auditoria',
   departments: 'Departamentos',
+  devices:     'Dispositivos MAC',
 };
 const ACTION_LABELS = {
   view:   'Visualizar',

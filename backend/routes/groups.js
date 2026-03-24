@@ -8,14 +8,16 @@ router.use(authMiddleware);
 router.get('/', requirePermission('groups', 'view'), async (req, res) => {
   try {
     const [groups] = await pool.query(
-      `SELECT vp.*, COUNT(rug.username) as user_count
+      `SELECT vp.*, COUNT(up.username) as user_count
        FROM vlan_profiles vp
        LEFT JOIN radusergroup rug ON rug.groupname = vp.groupname
+       LEFT JOIN user_profiles up ON up.username = rug.username
        GROUP BY vp.id
        ORDER BY vp.vlan_id`
     );
     res.json(groups);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro ao buscar grupos' });
   }
 });
@@ -86,8 +88,12 @@ router.put('/:groupname', requirePermission('groups', 'edit'), async (req, res) 
 // DELETE /api/groups/:groupname
 router.delete('/:groupname', requirePermission('groups', 'delete'), async (req, res) => {
   const { groupname } = req.params;
-  const [[{ cnt }]] = await pool.query('SELECT COUNT(*) as cnt FROM radusergroup WHERE groupname = ?', [groupname]);
-  if (cnt > 0) return res.status(409).json({ error: `Existem ${cnt} usuários neste grupo. Mova-os antes de remover.` });
+  const [[{ userCnt }]] = await pool.query(
+    `SELECT COUNT(*) as userCnt FROM radusergroup rug
+     JOIN user_profiles up ON up.username = rug.username
+     WHERE rug.groupname = ?`, [groupname]
+  );
+  if (userCnt > 0) return res.status(409).json({ error: `Existem ${userCnt} usuário(s) neste grupo. Mova-os antes de remover.` });
 
   const conn = await pool.getConnection();
   try {
