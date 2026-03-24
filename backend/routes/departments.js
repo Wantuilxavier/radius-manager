@@ -4,6 +4,20 @@ const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
+// GET /api/departments/options — lista apenas id+name dos departamentos ativos
+// Não exige permissão específica: qualquer usuário autenticado pode buscar para popular formulários
+router.get('/options', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name FROM departments WHERE active = 1 ORDER BY name`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao buscar departamentos' });
+  }
+});
+
 // GET /api/departments
 router.get('/', requirePermission('departments', 'view'), async (req, res) => {
   try {

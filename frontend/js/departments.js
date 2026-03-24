@@ -146,8 +146,7 @@ async function deleteDept(id, name, userCount) {
 let _departmentsList = [];
 async function loadDepartmentOptions() {
   try {
-    const depts = await api.get('/departments');
-    _departmentsList = depts.filter(d => d.active);
+    _departmentsList = await api.get('/departments/options');
   } catch { _departmentsList = []; }
   // Popula filtro de departamento na listagem de usuários
   const df = document.getElementById('filter-department');
