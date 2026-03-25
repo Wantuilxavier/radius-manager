@@ -5,6 +5,13 @@ const { authMiddleware, requireSuperAdmin, requirePermission } = require('../mid
 
 router.use(authMiddleware);
 
+async function auditLog(admin, action, targetType, targetName, details, ip) {
+  await pool.query(
+    'INSERT INTO audit_log (admin_user, action, target_type, target_name, details, ip_address) VALUES (?,?,?,?,?,?)',
+    [admin, action, targetType, targetName, details ? JSON.stringify(details) : null, ip]
+  );
+}
+
 // ─── Recursos e ações disponíveis ────────────────────────────
 const RESOURCES = ['dashboard', 'users', 'groups', 'nas', 'sessions', 'audit', 'departments', 'devices'];
 const ACTIONS   = {
@@ -102,6 +109,7 @@ router.post('/admins', requireSuperAdmin, async (req, res) => {
     }
 
     await conn.commit();
+    await auditLog(req.admin.username, 'admin_create', 'admin', username, { role, full_name, email }, req.ip);
     res.status(201).json({ message: 'Administrador criado com sucesso', id: adminId });
   } catch (err) {
     await conn.rollback();
@@ -142,6 +150,8 @@ router.put('/admins/:id', requireSuperAdmin, async (req, res) => {
 
     values.push(req.params.id);
     await pool.query(`UPDATE admin_users SET ${updates.join(',')} WHERE id=?`, values);
+    const changed = updates.map(u => u.split('=')[0]);
+    await auditLog(req.admin.username, 'admin_update', 'admin', req.params.id, { changed }, req.ip);
     res.json({ message: 'Administrador atualizado com sucesso' });
   } catch {
     res.status(500).json({ error: 'Erro ao atualizar administrador' });
@@ -153,8 +163,11 @@ router.delete('/admins/:id', requireSuperAdmin, async (req, res) => {
   if (String(req.admin.id) === String(req.params.id))
     return res.status(400).json({ error: 'Você não pode remover sua própria conta' });
   try {
+    const [[target]] = await pool.query('SELECT username FROM admin_users WHERE id = ?', [req.params.id]);
+    if (!target) return res.status(404).json({ error: 'Admin não encontrado' });
     const [r] = await pool.query('DELETE FROM admin_users WHERE id = ?', [req.params.id]);
     if (!r.affectedRows) return res.status(404).json({ error: 'Admin não encontrado' });
+    await auditLog(req.admin.username, 'admin_delete', 'admin', target.username, { id: req.params.id }, req.ip);
     res.json({ message: 'Administrador removido' });
   } catch {
     res.status(500).json({ error: 'Erro ao remover administrador' });
@@ -219,6 +232,7 @@ router.put('/admins/:id/permissions', requireSuperAdmin, async (req, res) => {
       );
     }
     await conn.commit();
+    await auditLog(req.admin.username, 'admin_permissions_update', 'admin', req.params.id, { count: permissions.length }, req.ip);
     res.json({ message: `${permissions.length} permissão(ões) salva(s) com sucesso` });
   } catch (err) {
     await conn.rollback();
@@ -296,6 +310,7 @@ router.put('/default-vlan', requireSuperAdmin, async (req, res) => {
     }
 
     await conn.commit();
+    await auditLog(req.admin.username, 'default_vlan_update', 'settings', 'default_vlan', { enabled, group }, req.ip);
     res.json({
       message: enabled
         ? `VLAN padrão ativada: usuários não cadastrados entrarão no grupo "${group}"`
@@ -350,6 +365,7 @@ router.get('/users-export', requirePermission('users', 'export'), async (req, re
       params
     );
 
+    await auditLog(req.admin.username, 'users_export', 'users', null, { total: rows.length, with_passwords: withPasswords, filters: { search, group, active, department } }, req.ip);
     res.json({ users: rows, total: rows.length, exported_at: new Date().toISOString() });
   } catch (err) {
     console.error(err);

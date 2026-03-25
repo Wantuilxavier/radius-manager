@@ -4,6 +4,13 @@ const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
+async function auditLog(admin, action, targetName, details, ip) {
+  await pool.query(
+    'INSERT INTO audit_log (admin_user, action, target_type, target_name, details, ip_address) VALUES (?,?,?,?,?,?)',
+    [admin, action, 'department', targetName, details ? JSON.stringify(details) : null, ip]
+  );
+}
+
 // GET /api/departments/options — lista apenas id+name dos departamentos ativos
 // Não exige permissão específica: qualquer usuário autenticado pode buscar para popular formulários
 router.get('/options', async (req, res) => {
@@ -46,6 +53,7 @@ router.post('/', requirePermission('departments', 'create'), async (req, res) =>
       'INSERT INTO departments (name, description) VALUES (?, ?)',
       [name.trim(), description?.trim() || null]
     );
+    await auditLog(req.admin.username, 'department_create', name.trim(), { description }, req.ip);
     res.status(201).json({ message: 'Departamento criado com sucesso' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -67,6 +75,7 @@ router.put('/:id', requirePermission('departments', 'edit'), async (req, res) =>
       [name.trim(), description?.trim() || null, active !== undefined ? (active ? 1 : 0) : 1, req.params.id]
     );
     if (!r.affectedRows) return res.status(404).json({ error: 'Departamento não encontrado' });
+    await auditLog(req.admin.username, 'department_update', name.trim(), { description, active }, req.ip);
     res.json({ message: 'Departamento atualizado com sucesso' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -89,6 +98,7 @@ router.delete('/:id', requirePermission('departments', 'delete'), async (req, re
       return res.status(409).json({ error: `${cnt} usuário(s) vinculado(s). Reatribua-os antes de remover.` });
 
     await pool.query('DELETE FROM departments WHERE id = ?', [req.params.id]);
+    await auditLog(req.admin.username, 'department_delete', dept.name, { id: req.params.id }, req.ip);
     res.json({ message: 'Departamento removido com sucesso' });
   } catch (err) {
     console.error(err);

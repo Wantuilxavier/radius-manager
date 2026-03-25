@@ -94,6 +94,10 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 
     const hash = await bcrypt.hash(new_password, 12);
     await pool.query('UPDATE admin_users SET password = ? WHERE id = ?', [hash, req.admin.id]);
+    await pool.query(
+      'INSERT INTO audit_log (admin_user, action, target_type, target_name, ip_address) VALUES (?,?,?,?,?)',
+      [req.admin.username, 'password_change', 'admin', req.admin.username, req.ip]
+    );
     res.json({ message: 'Senha alterada com sucesso' });
   } catch {
     res.status(500).json({ error: 'Erro interno' });

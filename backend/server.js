@@ -7,7 +7,21 @@ const rateLimit    = require('express-rate-limit');
 const path         = require('path');
 const { testConnection } = require('./db/connection');
 
+// ─── Validação de variáveis de ambiente obrigatórias ─────────
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('[FATAL] JWT_SECRET não configurado ou muito curto (mínimo 32 caracteres). Configure o arquivo .env antes de iniciar.');
+  process.exit(1);
+}
+if (!process.env.DB_PASS || process.env.DB_PASS === 'SUBSTITUA_PELA_SENHA_GERADA') {
+  console.error('[FATAL] DB_PASS não configurado. Configure o arquivo .env antes de iniciar.');
+  process.exit(1);
+}
+
 const app = express();
+
+// ─── Trust proxy (Nginx → Express) ───────────────────────────
+// Necessário para req.ip refletir o IP real do cliente via X-Forwarded-For
+app.set('trust proxy', 1);
 
 // ─── Segurança ────────────────────────────────────────────────
 app.use(helmet({
@@ -33,7 +47,12 @@ const apiLimiter = rateLimit({
 });
 
 // ─── Middlewares ──────────────────────────────────────────────
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+// CORS: credentials só funciona com origem específica (não com '*')
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({
+  origin: corsOrigin,
+  credentials: corsOrigin !== '*',
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);

@@ -6,7 +6,10 @@
       "WebFetch(domain:www.figma.com)",
       "WebFetch(domain:peterdraw.studio)",
       "WebSearch",
-      "WebFetch(domain:ui8.net)"
+      "WebFetch(domain:ui8.net)",
+      "Bash(grep -r \"auditLog\" /c/Users/wantuil.toledo/Documents/Desenvolvimento/Radius-wifi/radius-manager/radius-manager/backend/routes/*.js)",
+      "Bash(grep -A5 \"POST.*edit.*requires\" /c/Users/wantuil.toledo/Documents/Desenvolvimento/Radius-wifi/radius-manager/radius-manager/backend/routes/*.js)",
+      "Bash(grep -n \"await conn.query.*SELECT.*FOR UPDATE\\\\|LOCK IN SHARE MODE\" /c/Users/wantuil.toledo/Documents/Desenvolvimento/Radius-wifi/radius-manager/radius-manager/backend/routes/*.js)"
     ]
   }
 }

@@ -4,6 +4,13 @@ const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
+async function auditLog(admin, action, targetName, details, ip) {
+  await pool.query(
+    'INSERT INTO audit_log (admin_user, action, target_type, target_name, details, ip_address) VALUES (?,?,?,?,?,?)',
+    [admin, action, 'nas', targetName, details ? JSON.stringify(details) : null, ip]
+  );
+}
+
 // GET /api/nas
 router.get('/', requirePermission('nas', 'view'), async (req, res) => {
   try {
@@ -47,6 +54,7 @@ router.post('/', requirePermission('nas', 'create'), async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [nasname, shortname || null, type || 'other', secret, ports || null, community || null, description || null]
     );
+    await auditLog(req.admin.username, 'nas_create', nasname, { nasname, shortname, type }, req.ip);
     res.status(201).json({ id: result.insertId, message: 'NAS cadastrado com sucesso' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -67,6 +75,7 @@ router.put('/:id', requirePermission('nas', 'edit'), async (req, res) => {
       [nasname, shortname || null, type || 'other', secret, ports || null, community || null, description || null, req.params.id]
     );
     if (!r.affectedRows) return res.status(404).json({ error: 'NAS não encontrado' });
+    await auditLog(req.admin.username, 'nas_update', nasname, { nasname, shortname, type }, req.ip);
     res.json({ message: 'NAS atualizado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -77,8 +86,11 @@ router.put('/:id', requirePermission('nas', 'edit'), async (req, res) => {
 // DELETE /api/nas/:id
 router.delete('/:id', requirePermission('nas', 'delete'), async (req, res) => {
   try {
+    const [[nas]] = await pool.query('SELECT nasname FROM nas WHERE id = ?', [req.params.id]);
+    if (!nas) return res.status(404).json({ error: 'NAS não encontrado' });
     const [r] = await pool.query('DELETE FROM nas WHERE id = ?', [req.params.id]);
     if (!r.affectedRows) return res.status(404).json({ error: 'NAS não encontrado' });
+    await auditLog(req.admin.username, 'nas_delete', nas.nasname, { id: req.params.id }, req.ip);
     res.json({ message: 'NAS removido com sucesso' });
   } catch {
     res.status(500).json({ error: 'Erro ao remover NAS' });

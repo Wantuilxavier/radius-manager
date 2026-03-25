@@ -196,7 +196,7 @@ async function viewUser(username) {
         <div class="info-item"><label>Criado por</label><span>${u.created_by || '—'}</span></div>
         <div class="info-item"><label>Conexões simultâneas</label><span>${simLabel}</span></div>
       </div>
-      ${u.notes ? `<div style="background:var(--bg-hover);padding:12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);margin-bottom:20px"><strong>Observações:</strong><br>${u.notes}</div>` : ''}
+      ${u.notes ? `<div style="background:var(--bg-hover);padding:12px;border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);margin-bottom:20px"><strong>Observações:</strong><br>${u.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>')}</div>` : ''}
 
       <div style="font-size:13px;font-weight:600;margin-bottom:10px">Dispositivos conectados agora</div>
       ${renderDevicesSection(devData.devices, username)}

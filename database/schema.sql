@@ -1,6 +1,6 @@
 -- ============================================================
 -- FreeRADIUS + RadiusManager — Schema completo para MariaDB
--- Versão: consolidada (inclui todas as features até migration 003)
+-- Versão: consolidada (inclui todas as features até migration 007)
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS nas (
     community   VARCHAR(50),
     description VARCHAR(200),
     PRIMARY KEY (id),
-    KEY nasname (nasname)
+    UNIQUE KEY nasname (nasname)
 );
 
 -- Log de autenticações (necessário para a seção post-auth do FreeRADIUS)
@@ -230,6 +230,20 @@ CREATE TABLE IF NOT EXISTS system_settings (
     PRIMARY KEY (`key`)
 );
 
+-- Cadastro de dispositivos por MAC Address para MAC Authentication Bypass (MAB)
+-- O FreeRADIUS autentica o MAC como username via radcheck/radusergroup normalmente;
+-- esta tabela guarda metadados amigáveis (alias, tipo, status ativo).
+CREATE TABLE IF NOT EXISTS device_profiles (
+    mac          VARCHAR(17)  NOT NULL,            -- formato aa:bb:cc:dd:ee:ff
+    alias        VARCHAR(64),                      -- nome amigável (ex: "Impressora RH")
+    device_type  VARCHAR(32)  NOT NULL DEFAULT 'other',
+    description  VARCHAR(200),
+    active       TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by   VARCHAR(64),
+    PRIMARY KEY (mac)
+);
+
 -- Log de ações administrativas
 CREATE TABLE IF NOT EXISTS audit_log (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -293,4 +307,5 @@ INSERT IGNORE INTO schema_migrations (version) VALUES
 ('003_simultaneous_connections'),
 ('004_add_departments'),
 ('005_add_system_settings'),
-('006_add_export_permission');
+('006_add_export_permission'),
+('007_add_device_profiles');

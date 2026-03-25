@@ -4,6 +4,13 @@ const { authMiddleware, requirePermission } = require('../middleware/auth');
 
 router.use(authMiddleware);
 
+async function auditLog(admin, action, targetName, details, ip) {
+  await pool.query(
+    'INSERT INTO audit_log (admin_user, action, target_type, target_name, details, ip_address) VALUES (?,?,?,?,?,?)',
+    [admin, action, 'group', targetName, details ? JSON.stringify(details) : null, ip]
+  );
+}
+
 // GET /api/groups
 router.get('/', requirePermission('groups', 'view'), async (req, res) => {
   try {
@@ -44,6 +51,7 @@ router.post('/', requirePermission('groups', 'create'), async (req, res) => {
       await conn.query('INSERT INTO radgroupreply (groupname, attribute, op, value) VALUES (?,?,?,?)', [g, attr, op, val]);
     }
     await conn.commit();
+    await auditLog(req.admin.username, 'group_create', groupname, { groupname, vlan_id, description }, req.ip);
     res.status(201).json({ message: 'Grupo/VLAN criado com sucesso' });
   } catch (err) {
     await conn.rollback();
@@ -75,6 +83,7 @@ router.put('/:groupname', requirePermission('groups', 'edit'), async (req, res) 
     }
     await conn.query("UPDATE radgroupreply SET value=? WHERE groupname=? AND attribute='Tunnel-Private-Group-Id'", [String(vlan_id), groupname]);
     await conn.commit();
+    await auditLog(req.admin.username, 'group_update', groupname, { vlan_id, description, active }, req.ip);
     res.json({ message: 'Grupo atualizado' });
   } catch (err) {
     await conn.rollback();
@@ -102,6 +111,7 @@ router.delete('/:groupname', requirePermission('groups', 'delete'), async (req, 
     await conn.query('DELETE FROM radgroupcheck WHERE groupname = ?', [groupname]);
     await conn.query('DELETE FROM vlan_profiles WHERE groupname = ?', [groupname]);
     await conn.commit();
+    await auditLog(req.admin.username, 'group_delete', groupname, null, req.ip);
     res.json({ message: 'Grupo removido' });
   } catch (err) {
     await conn.rollback();
