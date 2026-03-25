@@ -100,10 +100,11 @@ function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMa
   doc.setFont('helvetica', 'normal');
   doc.text(`Exportado em: ${now}  |  Total: ${total} usuário(s)`, pageW - 10, 11, { align: 'right' });
 
-  if (usersState.search || usersState.group || usersState.active !== '') {
+  if (usersState.search || usersState.group || usersState.department || usersState.active !== '') {
     const filters = [
-      usersState.search  && `Busca: "${usersState.search}"`,
-      usersState.group   && `Grupo: ${usersState.group}`,
+      usersState.search      && `Busca: "${usersState.search}"`,
+      usersState.group       && `Grupo: ${usersState.group}`,
+      usersState.department  && `Depto: ${usersState.department}`,
       usersState.active !== '' && `Status: ${usersState.active === '1' ? 'Ativos' : 'Inativos'}`,
     ].filter(Boolean).join('  |  ');
     doc.text(`Filtros: ${filters}`, 10, 16);

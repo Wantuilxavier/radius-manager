@@ -125,6 +125,7 @@ async function submitDept() {
     }
     closeModal('modal-new-dept');
     loadDepartmentsPage();
+    await loadDepartmentOptions();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';

@@ -34,7 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       showApp();
       await loadGroups();
       await loadDepartmentOptions();
-      navigate('dashboard');
+      const hashPage = window.location.hash.replace('#', '');
+      navigate(hashPage && PAGE_META[hashPage] ? hashPage : 'dashboard');
     } catch {
       showLogin();
     }
@@ -135,7 +136,7 @@ async function handleLogin(e) {
     showApp();
     await loadGroups();
     await loadDepartmentOptions();
-    navigate('dashboard');
+    navigate('dashboard');  // fresh login always starts at dashboard
   } catch (err) {
     if (errMsg) errMsg.textContent = err.message || 'Erro ao fazer login';
     errEl.classList.add('show');
@@ -166,6 +167,9 @@ async function navigate(page) {
   }
 
   currentPage = page;
+
+  // Keep URL in sync so F5 restores the current page
+  history.replaceState(null, '', '#' + page);
 
   // Update nav active states
   document.querySelectorAll('.nav-item').forEach(el => {

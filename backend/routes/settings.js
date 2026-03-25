@@ -316,7 +316,7 @@ router.put('/default-vlan', requireSuperAdmin, async (req, res) => {
 router.get('/users-export', requirePermission('users', 'export'), async (req, res) => {
 
   try {
-    const { search, group, active, include_password } = req.query;
+    const { search, group, active, department, include_password } = req.query;
     const withPasswords = include_password === '1';
 
     let where = ['1=1'];
@@ -326,7 +326,8 @@ router.get('/users-export', requirePermission('users', 'export'), async (req, re
       where.push('(up.username LIKE ? OR up.full_name LIKE ? OR up.email LIKE ? OR up.department LIKE ?)');
       params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
-    if (group)  { where.push('rug.groupname = ?'); params.push(group); }
+    if (group)      { where.push('rug.groupname = ?'); params.push(group); }
+    if (department) { where.push('up.department = ?'); params.push(department); }
     if (active !== undefined && active !== '') { where.push('up.active = ?'); params.push(parseInt(active)); }
 
     const passwordJoin = withPasswords

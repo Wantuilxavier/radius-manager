@@ -11,7 +11,7 @@ async function loadNas() {
         <div class="empty-state">
           <span class="icon">🖧</span>
           <p>Nenhum dispositivo NAS cadastrado</p>
-          <button class="btn btn-primary" style="margin-top:16px" onclick="openNewNasModal()">＋ Cadastrar primeiro dispositivo</button>
+          ${hasPermission('nas','create') ? `<button class="btn btn-primary" style="margin-top:16px" onclick="openNewNasModal()">＋ Cadastrar primeiro dispositivo</button>` : ''}
         </div>`;
       return;
     }
