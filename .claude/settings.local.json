@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:dribbble.com)",
-      "Bash(grep -n \"groupOptions\\\\|loadGroups\" /c/Users/wantuil.toledo/Documents/Desenvolvimento/Radius-wifi/radius-manager/radius-manager/frontend/js/*.js)"
+      "Bash(grep -n \"groupOptions\\\\|loadGroups\" /c/Users/wantuil.toledo/Documents/Desenvolvimento/Radius-wifi/radius-manager/radius-manager/frontend/js/*.js)",
+      "WebFetch(domain:www.figma.com)",
+      "WebFetch(domain:peterdraw.studio)",
+      "WebSearch",
+      "WebFetch(domain:ui8.net)"
     ]
   }
 }
