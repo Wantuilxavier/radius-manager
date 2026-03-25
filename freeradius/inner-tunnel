@@ -1,0 +1,56 @@
+# ============================================================
+# FreeRADIUS — sites-available/inner-tunnel
+# Virtual server para autenticação interna PEAP/MSCHAPv2
+# Gerado pelo Radius Manager installer
+# ============================================================
+
+server inner-tunnel {
+
+listen {
+    ipaddr = 127.0.0.1
+    port = 18120
+    type = auth
+}
+
+authorize {
+    filter_username
+    chap
+    mschap
+    suffix
+    files
+    sql               # ← busca usuário/senha no banco para MSCHAPv2
+    expiration
+    logintime
+    pap
+}
+
+authenticate {
+    Auth-Type PAP {
+        pap
+    }
+    Auth-Type CHAP {
+        chap
+    }
+    Auth-Type MS-CHAP {
+        mschap           # ← autentica MSCHAPv2 usando Cleartext-Password do SQL
+    }
+    eap
+}
+
+session {
+    sql
+}
+
+post-auth {
+    sql
+    if (0) {
+        attr_filter.packettype
+    }
+}
+
+pre-proxy {}
+post-proxy {
+    eap
+}
+
+} # server inner-tunnel
