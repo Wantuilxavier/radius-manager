@@ -1330,6 +1330,114 @@ tbody tr:hover td { background: var(--bg-hover); }
 .admin-actions { display: flex; gap: 4px; }
 
 /* ═══════════════════════════════════════════════════════════════
+   PERMISSIONS MATRIX
+═══════════════════════════════════════════════════════════════ */
+.perm-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perm-resource-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.perm-resource-row:hover { background: var(--bg-hover); }
+
+.perm-resource-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 170px;
+  flex-shrink: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.perm-resource-name svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  opacity: .75;
+}
+
+.perm-actions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+/* Each action = pill label — hides the native checkbox */
+.perm-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1.5px solid var(--border-2);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition);
+}
+.perm-checkbox-label svg {
+  width: 12px; height: 12px;
+  flex-shrink: 0;
+}
+.perm-checkbox-label:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+/* Hide native checkbox visually but keep it accessible */
+.perm-checkbox-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+/* Checked state — filled blue pill */
+.perm-checkbox-label.perm-checked {
+  background: var(--accent-dim);
+  border-color: rgba(37,99,235,.35);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(37,99,235,.12);
+}
+[data-theme="light"] .perm-checkbox-label.perm-checked {
+  background: rgba(37,99,235,.10);
+  border-color: rgba(37,99,235,.30);
+  color: #1D4ED8;
+}
+
+/* Header row inside perm modal body */
+.perm-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.perm-header-row p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    NAS TYPE TAG
 ═══════════════════════════════════════════════════════════════ */
 .nas-type-tag {

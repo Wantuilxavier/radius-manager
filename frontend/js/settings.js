@@ -292,9 +292,9 @@ function _renderPermMatrix(container, granted, available) {
   const resources = Object.keys(available);
 
   container.innerHTML = `
-    <div style="padding:4px 0 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <span style="font-size:13px;color:var(--text-secondary)">Marque as permissões que este usuário deve ter.</span>
-      <div style="display:flex;gap:8px">
+    <div class="perm-header-row">
+      <p>Marque as permissões que este usuário deve ter.</p>
+      <div style="display:flex;gap:6px">
         <button class="btn btn-ghost btn-sm" onclick="_permSelectAll(true)">Marcar todos</button>
         <button class="btn btn-ghost btn-sm" onclick="_permSelectAll(false)">Desmarcar todos</button>
       </div>
@@ -305,7 +305,7 @@ function _renderPermMatrix(container, granted, available) {
         return `
           <div class="perm-resource-row">
             <div class="perm-resource-name">
-              <svg style="width:14px;height:14px;color:var(--accent)"><use href="#ic-shield"/></svg>
+              <svg style="width:14px;height:14px"><use href="#ic-shield"/></svg>
               ${RESOURCE_LABELS[resource] || resource}
             </div>
             <div class="perm-actions-wrap">
@@ -316,7 +316,7 @@ function _renderPermMatrix(container, granted, available) {
                     <input type="checkbox" class="perm-cb" data-resource="${resource}" data-action="${action}"
                       ${checked ? 'checked' : ''}
                       onchange="_permToggleLabel(this)">
-                    <svg style="width:13px;height:13px"><use href="${ACTION_ICONS[action] || '#ic-check'}"/></svg>
+                    <svg><use href="${ACTION_ICONS[action] || '#ic-check'}"/></svg>
                     ${ACTION_LABELS[action] || action}
                   </label>`;
               }).join('')}
