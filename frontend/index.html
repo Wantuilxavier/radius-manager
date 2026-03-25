@@ -803,7 +803,7 @@
 
 <!-- Modal: Exportar PDF -->
 <div id="modal-export-pdf" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <span class="modal-title">Exportar Usuários — PDF</span>
       <button class="modal-close"><svg><use href="#ic-x"/></svg></button>
@@ -812,10 +812,56 @@
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
         O PDF será gerado com os mesmos filtros aplicados na listagem atual.
       </p>
+
       <div class="form-group">
         <label class="form-label">Título do relatório</label>
         <input id="pdf-title" class="form-input" type="text" value="Relatório de Usuários WiFi">
       </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label class="form-label" style="margin:0">Colunas a incluir</label>
+          <button type="button" id="btn-pdf-toggle-all" class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 10px" onclick="toggleAllPdfCols()">Desmarcar todos</button>
+        </div>
+        <div style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 24px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-fullname" style="width:15px;height:15px" checked> Nome completo
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-email" style="width:15px;height:15px" checked> E-mail
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-phone" style="width:15px;height:15px"> Telefone
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-department" style="width:15px;height:15px" checked> Departamento
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-group" style="width:15px;height:15px" checked> Grupo / VLAN
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-status" style="width:15px;height:15px" checked> Status
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-simconn" style="width:15px;height:15px" checked> Conexões Sim.
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-expires" style="width:15px;height:15px" checked> Expira em
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-created_at" style="width:15px;height:15px" checked> Criado em
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="pdf-col-created_by" style="width:15px;height:15px"> Criado por
+            </label>
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+            A coluna <strong>Usuário</strong> é sempre incluída. <strong>Senha</strong> é controlada abaixo.
+          </div>
+        </div>
+      </div>
+
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="pdf-show-password" style="width:16px;height:16px">

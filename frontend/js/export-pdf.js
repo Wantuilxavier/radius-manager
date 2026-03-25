@@ -1,5 +1,25 @@
 // ─── EXPORTAR USUÁRIOS — PDF ──────────────────────────────────
 
+const _PDF_COL_IDS = [
+  'pdf-col-fullname', 'pdf-col-email',   'pdf-col-phone',
+  'pdf-col-department', 'pdf-col-group', 'pdf-col-status',
+  'pdf-col-simconn',  'pdf-col-expires', 'pdf-col-created_at',
+  'pdf-col-created_by',
+];
+
+const _PDF_COL_DEFAULTS = {
+  'pdf-col-fullname':    true,
+  'pdf-col-email':       true,
+  'pdf-col-phone':       false,
+  'pdf-col-department':  true,
+  'pdf-col-group':       true,
+  'pdf-col-status':      true,
+  'pdf-col-simconn':     true,
+  'pdf-col-expires':     true,
+  'pdf-col-created_at':  true,
+  'pdf-col-created_by':  false,
+};
+
 function openExportPdfModal() {
   document.getElementById('pdf-title').value = 'Relatório de Usuários WiFi';
   document.getElementById('pdf-show-password').checked = false;
@@ -8,11 +28,60 @@ function openExportPdfModal() {
   document.getElementById('pdf-password-wrap').style.display = 'none';
   document.getElementById('btn-generate-pdf').disabled  = false;
   document.getElementById('btn-generate-pdf').innerHTML = '<svg><use href="#ic-download"/></svg> Gerar PDF';
+
+  // Reset column checkboxes to defaults
+  _PDF_COL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = _PDF_COL_DEFAULTS[id] ?? true;
+  });
+  _syncToggleAllBtn();
+
   openModal('modal-export-pdf');
+}
+
+// Marcar/desmarcar todas as colunas
+function toggleAllPdfCols() {
+  const anyChecked = _PDF_COL_IDS.some(id => document.getElementById(id)?.checked);
+  _PDF_COL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !anyChecked;
+  });
+  _syncToggleAllBtn();
+}
+
+function _syncToggleAllBtn() {
+  const btn = document.getElementById('btn-pdf-toggle-all');
+  if (!btn) return;
+  const anyChecked = _PDF_COL_IDS.some(id => document.getElementById(id)?.checked);
+  btn.textContent = anyChecked ? 'Desmarcar todos' : 'Marcar todos';
+}
+
+function _getSelectedCols() {
+  const get = id => !!document.getElementById(id)?.checked;
+  return {
+    fullname:   get('pdf-col-fullname'),
+    email:      get('pdf-col-email'),
+    phone:      get('pdf-col-phone'),
+    department: get('pdf-col-department'),
+    group:      get('pdf-col-group'),
+    status:     get('pdf-col-status'),
+    simconn:    get('pdf-col-simconn'),
+    expires:    get('pdf-col-expires'),
+    created_at: get('pdf-col-created_at'),
+    created_by: get('pdf-col-created_by'),
+  };
 }
 
 async function generateUsersPdf() {
   const btn = document.getElementById('btn-generate-pdf');
+
+  const selectedCols = _getSelectedCols();
+  const hasAny = Object.values(selectedCols).some(Boolean);
+  if (!hasAny) {
+    toast('Selecione ao menos uma coluna para incluir no PDF', 'error');
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Gerando…';
 
@@ -43,19 +112,16 @@ async function generateUsersPdf() {
       return;
     }
 
-    // Coleta as senhas se solicitado (busca individual — somente se habilitado)
+    // Coleta as senhas se solicitado
     let passwordMap = {};
     if (showPasswords) {
-      // As senhas vêm do radcheck — fazemos um batch fetch via endpoint de export
-      // que já tem as senhas nos dados (precisamos buscá-las via endpoint de usuário)
-      // Para não sobrecarregar, buscamos via radcheck no backend de export
       const pwData = await api.get(`/settings/users-export?${q}&include_password=1`).catch(() => null);
       if (pwData?.users) {
         pwData.users.forEach(u => { if (u.password) passwordMap[u.username] = u.password; });
       }
     }
 
-    _buildPdf({ users, title, total, exported_at, showPasswords, passwordMap, usePassword, pdfPassword });
+    _buildPdf({ users, title, total, exported_at, showPasswords, passwordMap, usePassword, pdfPassword, selectedCols });
 
     closeModal('modal-export-pdf');
     toast(`PDF gerado com ${total} usuário(s)`, 'success');
@@ -68,7 +134,7 @@ async function generateUsersPdf() {
   }
 }
 
-function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMap, usePassword, pdfPassword }) {
+function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMap, usePassword, pdfPassword, selectedCols }) {
   const { jsPDF } = window.jspdf;
 
   const encryptionOptions = usePassword && pdfPassword ? {
@@ -112,32 +178,36 @@ function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMa
 
   doc.setTextColor(0, 0, 0);
 
-  // ─── Tabela ───────────────────────────────────────────────────
+  // ─── Colunas dinâmicas ────────────────────────────────────────
   const columns = [
-    { header: 'Usuário',       dataKey: 'username'    },
-    { header: 'Nome completo', dataKey: 'full_name'   },
-    { header: 'Departamento',  dataKey: 'department'  },
-    { header: 'Grupo / VLAN',  dataKey: 'group'       },
-    { header: 'Status',        dataKey: 'status'      },
-    { header: 'Conexões Sim.', dataKey: 'sim_conn'    },
-    { header: 'Expira em',     dataKey: 'expires_at'  },
-    { header: 'Criado em',     dataKey: 'created_at'  },
+    { header: 'Usuário', dataKey: 'username' }, // sempre incluído
   ];
 
-  if (showPasswords) {
-    columns.splice(1, 0, { header: 'Senha', dataKey: 'password' });
-  }
+  if (selectedCols.fullname)   columns.push({ header: 'Nome completo',  dataKey: 'full_name'   });
+  if (showPasswords)           columns.push({ header: 'Senha',          dataKey: 'password'    });
+  if (selectedCols.email)      columns.push({ header: 'E-mail',         dataKey: 'email'       });
+  if (selectedCols.phone)      columns.push({ header: 'Telefone',       dataKey: 'phone'       });
+  if (selectedCols.department) columns.push({ header: 'Departamento',   dataKey: 'department'  });
+  if (selectedCols.group)      columns.push({ header: 'Grupo / VLAN',   dataKey: 'group'       });
+  if (selectedCols.status)     columns.push({ header: 'Status',         dataKey: 'status'      });
+  if (selectedCols.simconn)    columns.push({ header: 'Conex. Sim.',    dataKey: 'sim_conn'    });
+  if (selectedCols.expires)    columns.push({ header: 'Expira em',      dataKey: 'expires_at'  });
+  if (selectedCols.created_at) columns.push({ header: 'Criado em',      dataKey: 'created_at'  });
+  if (selectedCols.created_by) columns.push({ header: 'Criado por',     dataKey: 'created_by'  });
 
   const rows = users.map(u => {
     const row = {
       username:   u.username,
       full_name:  u.full_name || '—',
+      email:      u.email || '—',
+      phone:      u.phone || '—',
       department: u.department || '—',
       group:      u.groupname ? `${u.groupname}${u.vlan_id ? ` (VLAN ${u.vlan_id})` : ''}` : '—',
       status:     u.active ? 'Ativo' : 'Inativo',
       sim_conn:   u.simultaneous_connections ? String(u.simultaneous_connections) : 'Ilim.',
       expires_at: u.expires_at ? new Date(u.expires_at).toLocaleDateString('pt-BR') : 'Nunca',
       created_at: new Date(u.created_at).toLocaleDateString('pt-BR'),
+      created_by: u.created_by || '—',
     };
     if (showPasswords) row.password = passwordMap[u.username] || '—';
     return row;
@@ -177,7 +247,6 @@ function _buildPdf({ users, title, total, exported_at, showPasswords, passwordMa
     },
     margin: { top: 22, left: 10, right: 10 },
     didDrawPage: (data) => {
-      // Rodapé com número de página
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
