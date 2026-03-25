@@ -381,6 +381,7 @@ async function createUser() {
   document.getElementById('form-new-user').reset();
   document.getElementById('new-password').value = 'verbo@sede';
   document.getElementById('new-password').type = 'password';
+  document.getElementById('new-simultaneous').value = '1';
   const badge = document.getElementById('new-username-auto-badge');
   if (badge) badge.style.display = 'none';
   const gs = document.getElementById('new-group');
