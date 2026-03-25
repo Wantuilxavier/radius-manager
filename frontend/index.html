@@ -602,13 +602,31 @@
       <form id="form-new-user" onsubmit="e=>e.preventDefault()">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Usuário (login) <span class="form-required">*</span></label>
-            <input id="new-username" class="form-input" type="text" placeholder="joao.silva" autocomplete="off">
+            <label class="form-label">Nome completo</label>
+            <input id="new-fullname" class="form-input" type="text" placeholder="João Silva" oninput="_onFullnameInput(this.value)" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input id="new-email" class="form-input" type="email" placeholder="joao@empresa.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;gap:6px">
+              Usuário (login) <span class="form-required">*</span>
+              <span id="new-username-auto-badge" style="display:none;background:var(--accent-dim);color:var(--accent);font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;letter-spacing:.04em">AUTO</span>
+            </label>
+            <input id="new-username" class="form-input" type="text" placeholder="joao.silva" autocomplete="off" oninput="_onUsernameManualEdit()">
             <div class="form-hint">Apenas letras, números, ponto e hífen</div>
           </div>
           <div class="form-group">
             <label class="form-label">Senha <span class="form-required">*</span></label>
-            <input id="new-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+            <div style="position:relative">
+              <input id="new-password" class="form-input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:42px">
+              <button type="button" class="btn btn-ghost btn-sm btn-icon" onclick="_toggleNewPassword()" title="Mostrar/ocultar senha" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:4px 6px">
+                <svg><use href="#ic-eye"/></svg>
+              </button>
+            </div>
           </div>
         </div>
         <div class="form-row">
@@ -628,16 +646,6 @@
               <option value="10">10 dispositivos</option>
             </select>
             <div class="form-hint">Máx. de dispositivos simultâneos para este usuário</div>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Nome completo</label>
-            <input id="new-fullname" class="form-input" type="text" placeholder="João Silva">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input id="new-email" class="form-input" type="email" placeholder="joao@empresa.com">
           </div>
         </div>
         <div class="form-row">

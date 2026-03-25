@@ -288,8 +288,101 @@ async function deleteUser(username) {
   } catch (err) { toast(err.message, 'error'); }
 }
 
+// ─── Username auto-generation ─────────────────────────────────
+let _usernameAutoMode = true;
+let _fullnameDebounceTimer = null;
+
+const _STOP_WORDS = new Set(['da','de','do','das','dos','e','van','von','del','di','el']);
+
+function _normalizePart(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function _generateUsernameCandidates(fullname) {
+  const parts = fullname.trim().split(/\s+/)
+    .map(_normalizePart)
+    .filter(p => p.length > 0 && !_STOP_WORDS.has(p));
+
+  if (!parts.length) return [];
+
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
+  const mid   = parts.length > 2 ? parts.slice(1, -1) : [];
+
+  const candidates = [];
+
+  if (parts.length === 1) {
+    candidates.push(first);
+    for (let i = 2; i <= 9; i++) candidates.push(`${first}${i}`);
+    return candidates;
+  }
+
+  // Priority order
+  candidates.push(`${first}.${last}`);
+  if (mid.length) candidates.push(`${first}.${mid[0]}.${last}`);
+  candidates.push(`${first}${last.charAt(0)}.${last}`);
+  candidates.push(`${first.charAt(0)}.${last}`);
+  if (mid.length) candidates.push(`${first}.${mid.map(m => m.charAt(0)).join('')}.${last}`);
+  for (let i = 2; i <= 9; i++) candidates.push(`${first}.${last}${i}`);
+
+  return candidates;
+}
+
+async function _checkUsernameAvailable(username) {
+  try {
+    await api.get(`/users/${username}`);
+    return false; // 200 = exists
+  } catch (err) {
+    return true; // 404 = available
+  }
+}
+
+async function _onFullnameInput(value) {
+  clearTimeout(_fullnameDebounceTimer);
+  if (!_usernameAutoMode) return;
+
+  const badge = document.getElementById('new-username-auto-badge');
+
+  if (!value.trim()) {
+    document.getElementById('new-username').value = '';
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+
+  _fullnameDebounceTimer = setTimeout(async () => {
+    if (!_usernameAutoMode) return;
+    const candidates = _generateUsernameCandidates(value);
+    for (const candidate of candidates) {
+      const available = await _checkUsernameAvailable(candidate);
+      if (available) {
+        if (!_usernameAutoMode) return; // user may have typed manually while checking
+        document.getElementById('new-username').value = candidate;
+        if (badge) badge.style.display = 'inline';
+        return;
+      }
+    }
+  }, 500);
+}
+
+function _onUsernameManualEdit() {
+  _usernameAutoMode = false;
+  const badge = document.getElementById('new-username-auto-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+function _toggleNewPassword() {
+  const inp = document.getElementById('new-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
 async function createUser() {
+  _usernameAutoMode = true;
+  clearTimeout(_fullnameDebounceTimer);
   document.getElementById('form-new-user').reset();
+  document.getElementById('new-password').value = 'verbo@sede';
+  document.getElementById('new-password').type = 'password';
+  const badge = document.getElementById('new-username-auto-badge');
+  if (badge) badge.style.display = 'none';
   const gs = document.getElementById('new-group');
   if (gs) gs.innerHTML = groupOptions('');
   document.getElementById('new-user-error').style.display = 'none';
